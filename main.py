@@ -84,6 +84,10 @@ def run_bot():
                 elif message_type == "membershipGIFTEvent" or message_type == "newSponsorEvent":
                     sender.send_message(f"👑 HYPE! @{username} just supported the channel and received a massive point drop! 🚀")
 
+                # Catch once-a-month Free Member Milestone Announcement
+                elif message_type == "memberMilestoneChatEvent":
+                print(f"🏆 Milestone! @{username} used their Member Milestone Chat and was awarded 5000 points!")
+
                 # Format a clean console log for you to read while streaming
                 print(f"💬 [{c.datetime}] {username}: {message_text}")
 

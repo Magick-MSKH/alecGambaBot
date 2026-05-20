@@ -6,6 +6,7 @@ POINTS_PER_CHAT = 10
 POINTS_PASSIVE = 50
 POINTS_SUPER_CHAT_MULTIPLIER = 250 # Example: ($5 Super Chat) * 250 = 1250 points
 POINTS_MEMBER_GIFT = 2000
+POINTS_MEMBER_MILESTONE = 5000
 
 # Tracks {username: last_seen_timestamp} to handle passive points
 active_viewers = {}
@@ -56,6 +57,10 @@ def process_incoming_message(username, message_text, message_type, details=None,
         database.add_points(username, POINTS_MEMBER_GIFT)
         print(f"👑 MEMBER EVENT! {username} supported the channel and earned {POINTS_MEMBER_GIFT} points!")
 
+    # 4. Handle Member Milestone Events
+    if message_type == "memberMilestoneChatEvent":
+        database.add_points(username, POINTS_MEMBER_MILESTONE)
+        print(f"🏆 MILESTONE CLAIMED: {username} cashed in their monthly milestone points!")
     
 def DistributePassivePoints():
     """ Call this function on a timer loop (Example: Once every 5 min).
