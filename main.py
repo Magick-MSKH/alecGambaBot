@@ -60,16 +60,21 @@ def run_bot():
                 sheets_sync.sync_to_google_sheets() # Run Google Sheets updater code after points shift
                 last_passive_tick = current_time
 
-            # 2. Get lastest batch of chat messages
+            # 2. Get latest batch of chat messages
             for c in chat.get().sync_items():
                 username = c.author.name
                 channel_id = c.author.channelId
                 message_text = c.message
 
-                # Treat everything scraped as a textMesageEvent for the points manager
-                # (Note: pytchat reads superchats, but we treat them as standard text for simplicity)
-                # points_manager.process_incoming_message(username, message_text, "textMessageEvent")
-                points_manager.process_incoming_message(username, message_text, message_type, details)
+                # NEW!: Determine if the user has an active channel membership
+                is_member = getattr(c.author, "isChatSponsor", False)
+                # Pass membership flag into points engine
+                points_manager.process_incoming_message(
+                    username,
+                    message_text,
+                    "textMessageEvent",
+                    is_member=is_member
+                )
 
                 # NEW: Publicly celebrate Super Chats and Member Milestones in chat!
                 if message_type == "superChatEvent":
