@@ -86,7 +86,34 @@ def run_bot():
 
                 # Catch once-a-month Free Member Milestone Announcement
                 elif message_type == "memberMilestoneChatEvent":
-                print(f"🏆 Milestone! @{username} used their Member Milestone Chat and was awarded 5000 points!")
+                    # Fallback to 1 month if pytchat doesn't read the metadata object (for whatever reason)
+                    months = 1
+
+                    # Attempt to pull raw API dictionary block out of pytchat object struct
+                    try:
+                        if hasattr(c, 'rawdata') and 'memberMilestoneChatDetails' in c.rawdata:
+                            months = c.rawdata['memberMilestoneChatDetails'].get('memberMonth', 1)
+                    except Exception:
+                        pass
+
+                    # Calculate bonus using dynamic formula
+                    dynamic_payout = 1000 + (months * 250)
+
+                    # Pass the event info to the points manager
+                    points_manager.process_incoming_message(
+                        username,
+                        message_text,
+                        "memberMilestoneChatEvent",
+                        details={"months": months}
+                    )
+
+                    # Send message into chat
+                    sender.send_message(
+                        f"🏆 MILESTONE! @{username} claimed their Month {months} Milestone Chat "
+                        f"and earned 🎁 {dynamic_payout} points!"
+                    )
+
+                print(f"🏆 Milestone! @{username} used their Member Milestone Chat and was awarded {POINTS_MEMBER_MILESTONE} points!")
 
                 # Format a clean console log for you to read while streaming
                 print(f"💬 [{c.datetime}] {username}: {message_text}")
