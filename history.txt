@@ -1,0 +1,529 @@
+bot.py - test 1
+{
+    import database
+
+    # Initialize the database
+    database.init_db()
+
+    # Simulate a user checking balance (automatically registers them)
+    bal = database.get_balance("viewer_alec")
+    print(f"Alec's starting balance: {bal}")
+
+    # Simulate placing a bet
+    success, message = database.place_bet("viewer_alec", 200, "yes")
+    print(message)
+
+    # Check balance after betting
+    print(f"Alec's balance after bet: {database.get_balance('viewer_alec')}")
+
+    # Simulate the streamer resolving the bet
+    winners_count = database.resolve_bets("yes")
+    print(f"Bet resolved! Total winners paid out: {winners_count}")
+    print(f"Alec's final balance: {database.get_balance('viewer_alec')}")
+}
+
+
+bot.py - test 2
+{
+    import time
+    import database
+    import points_manager
+
+    # Setup clean database
+    database.init_db()
+
+    print("--- SIMULATING USER INTERACTIONS ---")
+
+    # 1. Alec chats twice quickly (Testing spam cooldown)
+    points_manager.process_incoming_message("alec", "Hello stream!", "textMessageEvent")
+    points_manager.process_incoming_message("alec", "Spamming for points!", "textMessageEvent")
+
+    # 2. Bob sends a regular message
+    points_manager.process_incoming_message("larry", "What's up?", "textMessageEvent")
+
+    # 3. Charlie sends a $5 Super Chat
+    points_manager.process_incoming_message("kai", "Love the stream!", "superChatEvent", details={"amount": 5.00})
+
+    # 4. Simulating the 5-minute passive timer tick right now
+    print("\n--- SIMULATING PASSIVE TIMER TICK ---")
+    points_manager.DistributePassivePoints()
+
+    # Print out final database balances to verify the math
+    print("\n--- FINAL DATABASE CHECK ---")
+    print(f"alec's Points: {database.get_balance('alec')}")       # 1000 starting + 10 chat + 50 passive = 1060
+    print(f"larry's Points: {database.get_balance('larry')}")         # 1000 starting + 10 chat + 50 passive = 1060
+    print(f"kai's Points: {database.get_balance('kai')}") # 1000 starting + 500 superchat + 50 passive = 1550
+
+}
+
+main.py get_youtube_client()
+flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+            # Web app binding bypass
+            print("\n[-] Copy Paste this link for Authorization Token...")
+            creds = flow.run_local_server(
+                port=8080,
+                host='localhost',
+                authorization_prompt_message=""
+            )
+#           WSL Check: Launch local server but handle fallback
+#           print("\n[AUTH] Opening browser for authentication...")
+#           creds = flow.run_local_server(port=0, authorization_prompt_message="")
+
+def get_youtube_client():
+    """ Authenticates the user and returns an authorized YouTube API client. """
+    creds = None
+
+    # Check if we already have saved login credentials from a previous login
+    if os.path.exists(TOKEN_PICKLE_FILE):
+        with open(TOKEN_PICKLE_FILE, 'rb') as token:
+            creds = pickle.load(token)
+
+    # If credentials don't exist, OR are invalid - prompt another login sequence
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+            creds = flow.run_local_server(port=0, authorization_prompt_message="")
+
+        # Save creds for next login
+        with open(TOKEN_PICKLE_FILE, 'wb') as token:
+            pickle.dump(creds, token)
+
+    return build("youtube", "v3", credentials=creds)
+
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+
+MAIN.PY - OLD
+
+
+import os
+import time
+import pickle
+import database
+import admin_manager
+import points_manager
+import command_manager
+
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+
+# Need full read/write access to manage live chat messages
+SCOPES = ["https://googleapis.com"]
+CLIENT_SECRET_FILE = "client_secret.json"
+TOKEN_PICKLE_FILE = "token.pickle"
+
+def get_youtube_client():
+    """Authenticates using standard desktop client credentials natively on Windows."""
+    creds = None
+    
+    if os.path.exists(TOKEN_PICKLE_FILE):
+        with open(TOKEN_PICKLE_FILE, 'rb') as token:
+            creds = pickle.load(token)
+            
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+            # This will now cleanly fire open your default Windows browser automatically!
+            creds = flow.run_local_server(port=0)
+            
+        with open(TOKEN_PICKLE_FILE, 'wb') as token:
+            pickle.dump(creds, token)
+            
+    return build("youtube", "v3", credentials=creds)
+
+
+def get_active_live_chat_id(youtube):
+    """" Find current active livestream chat ID for authenticated channel """
+    print("[?] Searching for active livestream broadcast...")
+    try:
+        request = youtube.liveBroadcasts().list(
+            part="snippet",
+            broadcastStatus="active",
+            broadcastType="all"
+        )
+        response = request.execute()
+
+        items = response.get("items", [])
+        if not items:
+            print("[!] No active livestream found! [!]")
+            return None
+        
+        chat_id = items[0]["snippet"]["liveChatId"]
+        print(f"[O] Found active stream! Live Chat ID: {chat_id}")
+        return chat_id
+    except Exception as e:
+        print(f"[X] Error fetching broadcast data: {e}")
+        return None
+    
+def send_chat_message(youtube, chat_id, text):
+    """ Helper function to post a message into the YouTube life stream chat. """
+    try:
+        youtube.liveChatMessags().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "liveChatId": chat_id,
+                    "type": "textMesageEvent",
+                    "textMessageDetails": {
+                        "messageText": text
+                    }
+                }
+            }
+        ).execute()
+    except Exception as e:
+        print(f"[X] Failed to send chat message {e}")
+
+def run_bot():
+    # Init SQLite tables
+    database.init_db()
+
+    # Connect to YouTube
+    youtube = get_youtube_client()
+
+    # Get Chat ID
+    chat_id = get_active_live_chat_id(youtube)
+    if not chat_id:
+        print("[X] Exiting bot - No active stream detected")
+        return
+    
+    print("[!!!] Gamba Bot is running! Monitoring chat messages...")
+    send_chat_message(youtube, chat_id, "[O] Gamba bot is online and ready for bets!")
+
+    next_page_token = None
+    last_passive_tick = time.time()
+
+    while True:
+        try:
+            # 1. Check Time for Passive point awards
+            current_time = time.time()
+            if current_time - last_passive_tick >= 300: # in seconds (5 minutes)
+                points_manager.DistributePassivePoints()
+                last_passive_tick = current_time
+
+            # 2. Fetch new live chat messages
+            request = youtube.liveChatMessages().list(
+                liveChatId=chat_id,
+                part="snippet,authorDetails",
+                pageToken=next_page_token
+            )
+            response = request.execute()
+
+            # Youtube says exactly how long to wait before polling again to save quota,
+            # per YouTube API Reference manual 
+            polling_interval = response.get("pollingIntervalMillis", 4000) / 1000.0
+            next_page_token = response.get("nextPageToken")
+
+            # 3. Process each message found
+            for item in response.get("items", []):
+                snippet = item.get("snippet", {})
+                author = item.get("authorDetails", {})
+                username = author.get("displayName")
+                channel_id = author.get("channelId")
+                message_text = snippet.get("displayMessage", "")
+                message_type = snippet.get("type") # Example: textMessageEvent, superChatEvent, etc
+
+                # Fallback details check for super chats
+                details = {}
+                if message_type == "superChatEvent" and "superChatDetails" in snippet:
+                    # Amount is given in micros by the API (divide by 1 million for regular currency)
+                    details["amount"] = snippet["superChatDetails"].get("amountMicros", 0) / 1000000.0
+
+                # Process passive/active points & tracking
+                points_manager.process_incoming_message(username, message_text, message_type, details)
+                
+                # Ignore processing if the bot itself wrote the message
+                if author.get("isChatOwner") and username == "YourBotNameIfSeparate":
+                    continue
+
+                # Handle User Commands (!balance, !gamba)
+                bot_reply = command_manager.process_user_command(username, message_text)
+                if bot_reply:
+                    send_chat_message(youtube, chat_id, bot_reply)
+                    continue
+
+                # Handle Admin Commands (!give, etc)
+                admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
+                if admin_reply:
+                    send_chat_message(youtube, chat_id, admin_reply)
+                    continue
+                        
+
+                # Handle Gamba betting execution (Interfacing dtabase.place_bet)
+                if message_text.startswith("!gamba"):
+                    parts = message_text.split()
+                    if len(parts) >= 3:
+                        try:
+                            amount = int(parts[1])
+                            vote = parts [2]
+                            success, gamba_msg = database.place_bet(username, amount, vote)
+                            send_chat_message(youtube, chat_id, f"@{username} {gamba_msg}")
+                        except ValueError:
+                            send_chat_message(youtube, chat_id, f"@{username} [X] Invalid amount.")
+
+            # Sleep to match YouTube's expected rate limits
+            time.sleep(polling_interval)
+
+        except KeyboardInterrupt:
+            print("\nShutting down bot safely...")
+            break
+        except Exception as e:
+            print(f"[!] Loop encountered an error: {e}")
+            time.sleep(10) # Wait a bit before retrying if network drops
+
+    # End of main.py Init!
+
+if __name__ == "__main__":
+    run_bot()
+
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+
+ADMIN_MANAGER.PY
+
+import database
+
+# Define the authorized channel IDs allowed to run admin commands
+# NOTE: Need to replace 'YOUTUBE_CHANNEL_ID' with the actual channel ID later
+ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "ALEC_STREAM_CHANNEL_ID"]
+
+def process_admin_command(sender_id, sender_name, message_text):
+    """Parses chat messages from stream admins to run privileged actions.
+       Example: !give [username] [points] """
+    
+    # 1. Security Check: Block non-admins instantly
+    if sender_id not in ADMIN_IDS and sender_name not in ["Alec", "StreamOwnerUsername"]:
+        return "[X] Unauthorized: Only the streamer or mods can use this command!"
+    
+    # 2. Split command into parts
+    parts = message_text.split() # Example: ['!give', 'Alec', '500']
+
+    if len(parts) < 3:
+        return "[!!] Usage: !give [username] [amount]"
+    
+    command = parts[0].lower()
+    target_username = parts[1]
+    amount_str = parts[2]
+
+    # 3. Handle the !give command
+    if command == "!give":
+        try:
+            amount = int(amount_str)
+
+            # Call existing DB helper function to add points
+            database.add_points(target_username, amount)
+            # Fetch new balance, show success message
+            new_balance = database.get_balance(target_username)
+            return f"[<3] Awarded {amount} points to {target_username}! New balance: {new_balance}"
+        
+        except ValueError:
+            return "[XX] Error: Amount must be type(int)!"
+        except Exception as e:
+            return f"[X] Database error: {str(e)}"
+        
+    return None
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+
+main.py
+
+import time
+import database
+import points_manager
+import admin_manager
+import command_manager
+import pytchat
+
+# VIDEO_ID = youtube.com/*********** (string of characters at the end of the live stream URL)
+VIDEO_ID = "5a1Cq-uIvZU"
+
+def run_bot():
+    # Init SQLite tables
+    database.init_db()
+
+    print("🔍 Connecting to YouTube Live Chat scraper...")
+    try:
+        chat = pytchat.create(video_id=VIDEO_ID)
+    except Exception as e:
+        print(f"❌ Failed to connect to stream: {e}")
+        return
+
+    print("🚀 Gamba Bot is running natively on Windows! Monitoring chat logs...")
+    print("📊 All bot responses will display here in your console.")
+
+    last_passive_tick = time.time()
+
+    while chat.is_alive():
+        try:
+            # 1. Check if 5 min passed to award passive points
+            current_time = time.time()
+            if current_time - last_passive_tick >= 300: # 300 secs = 5 mins
+                points_manager.DistributePassivePoints()
+                last_passive_tick = current_time
+
+            # 2. Get lastest batch of chat messages
+            for c in chat.get().sync_items():
+                username = c.author.name
+                channel_id = c.author.channelId
+                message_text = c.message
+
+                # Treat everything scraped as a textMesageEvent for the points manager
+                # (Note: pytchat reads superchats, but we treat them as standard text for simplicity)
+                points_manager.process_incoming_message(username, message_text, "textMessageEvent")
+
+                # Format a clean console log for you to read while streaming
+                print(f"💬 [{c.datetime}] {username}: {message_text}")
+
+                # 3. Handle User Commands (!balance)
+                bot_reply = command_manager.process_user_command(username, message_text)
+                if bot_reply:
+                    print(f"🤖 BOT RESPONSE: {bot_reply}")
+                    continue
+
+                # 4. Handle Admin Commands (!give)
+                admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
+                if admin_reply:
+                    print(f"👑 ADMIN ACTION: {admin_reply}")
+                    continue
+
+                # 5. Handle Gamba betting execution
+                if message_text.startswith("!gamba"):
+                    # Fast check against the admin module state
+                    if not admin_manager.IS_BETTING_OPEN:
+                        print(f"🎲 GAMBA: @{username} tried to bet, but betting is currently closed.")
+                        continue
+                        
+                    parts = message_text.split()
+                    if len(parts) >= 3:
+                        try:
+                            amount = int(parts[1])
+                            vote = parts[2].lower()
+                            
+                            # Validate user choice against active options
+                            if vote not in admin_manager.VALID_OPTIONS:
+                                print(f"🎲 GAMBA: @{username} picked an invalid choice '{vote}'. Options: {admin_manager.VALID_OPTIONS}")
+                                continue
+                                
+                            if amount <= 0:
+                                print(f"🎲 GAMBA: @{username} tried to bet 0 or negative points.")
+                                continue
+
+                            success, gamba_msg = database.place_bet(username, amount, vote)
+                            print(f"🎲 GAMBA: @{username} -> {gamba_msg}")
+                        except ValueError:
+                            print(f"🎲 GAMBA: @{username} -> ❌ Invalid amount input.")
+
+
+            # Sleep slightly to prevent CPU spinning, pytchat handles its own polling rates internally
+            time.sleep(1)
+
+        except KeyboardInterrupt:
+            print("\nShutting down bot safely.")
+            break
+        except Exception as e:
+            print(f"⚠️ Loop encountered an error: {e}")
+            time.sleep(5)
+
+    print("🛑 Stream connection lost or closed.")
+
+if __name__ == "__main__":
+    run_bot()
+
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+sheets_sync.py
+
+import sqlite3
+import gspread
+import database
+
+def sync_to_google_sheets():
+    """
+    Reads all users from the local SQLite database and overwrites the Google Sheet 
+    with the current sorted scoreboard data.
+    """
+    try:
+        # 1. Connect to your Google Service Account
+        # (We will place your credentials json file in your folder in the next step)
+        gc = gspread.service_account(filename="sheets_credentials.json")
+        
+        # 2. Open the workbook by its share name
+        sh = gc.open("Alec Stream Gamba Leaderboard")
+        worksheet = sh.worksheet("Data")
+        
+        # 3. Pull current data from SQLite, sorted from richest to poorest
+        conn = sqlite3.connect(database.DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # 4. Format data cleanly with a nice header
+        sheet_data = [["Rank", "Username", "Points Balance"]]
+        for index, (username, points) in enumerate(rows, 1):
+            sheet_data.append([f"#{index}", username, points])
+            
+        # 5. Clear the old sheet completely and dump the new sorted list in
+        worksheet.clear()
+        worksheet.update('A1', sheet_data)
+        print("📊 Google Sheets leaderboard successfully synced!")
+        
+    except Exception as e:
+        print(f"⚠️ Google Sheets Sync Failed: {e}")
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+database.py
+
+def resolve_bets(winning_type):
+    """ Pays out 2x to the winners, logs win/loss stats, and clears the betting pool """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    # Get all winners
+    cursor.execute("SELECT username, amount FROM bets WHERE vote_type = ?", (winning_type,))
+    winners = cursor.fetchall()
+
+    # Pay back double the bet amount to winners
+    for username, amount in winners:
+        payout = amount * 2
+        cursor.execute("UPDATE users SET points = points + ? WHERE username = ?", (payout, username))
+        
+    # Clear BETS table for next round
+    cursor.execute("DELETE FROM bets")
+
+    conn.commit()
+    conn.close()
+    return len(winners)
