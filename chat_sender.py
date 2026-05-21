@@ -12,12 +12,23 @@ class YouTubeChatSender:
         """Launches a persistent browser window so you can log in once manually."""
         print("\n🌐 Opening a dedicated browser window for chat output...")
         self.playwright = sync_playwright().start()
+
+        # Upgrading to STEALTH MODE!!! >:D
+        stealth_args = [
+            # Disables internal flag that notifies websites of automation tools
+            '--disable-blink-features=AutomationControlled',
+            # Prevents extension or sandbox level mismatches on Windows host architecture
+            '--disable-infobars',
+            '--no-default-browser-check'
+        ]
         
-        # Use native Chrome installation instead of debug/dev one
+        # Use native Chrome installation instead of debug/dev one (in stealth mode)
         self.browser = self.playwright.chromium.launch_persistent_context(
             user_data_dir="./user_data",
             headless=False,
-            channel="chrome"
+            channel="chrome" # Points directly to the Chrome installation
+            args=stealth_args, # Inject anti-bot detection arguments
+            ignore_default_args=["--enable-automation"]
         )
         
         self.page = self.browser.pages[0]
