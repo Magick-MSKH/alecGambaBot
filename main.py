@@ -53,12 +53,20 @@ def run_bot():
     last_passive_tick = time.time()
     while chat.is_alive():
         try:
-            # 1. Check if 5 min passed to award passive points
-            current_time = time.time()
+            current_time = time.time() # 1. Check if 5 min passed to award passive points
             if current_time - last_passive_tick >= 300: # 300 secs = 5 mins
                 points_manager.DistributePassivePoints()
                 sheets_sync.sync_to_google_sheets() # Run Google Sheets updater code after points shift
                 last_passive_tick = current_time
+
+            if admin_manager.IS_BETTING_OPEN and not admin_manager.HAS_ANNOUNCED_LOCK:
+                elapsed_bet_time = current_time - admin_manager.BET_OPEN_TIMESTAMP
+                if elapsed_bet_time >= admin_manager.BET_DURATION_SECONDS:
+                    admin_manager.HAS_ANNOUNCED_LOCK = True
+                    # Announce Bet Lock
+                    lock_msg = "🔒 Betting is now officialy LOCKED! 🔒"
+                    sender.send_message(lock_msg)
+                    print("🔒 [CHANNEL RELAY] Sent pool closure alert to Live Chat.")
 
             # 2. Get latest batch of chat messages
             for c in chat.get().sync_items():
@@ -134,25 +142,25 @@ def run_bot():
 
                 # 5. Handle Gamba betting execution
                 if message_text.startswith("!gamba"):
-                    # Fast check against the admin module state
+                    if not admin_manager.is_betting_period_active():
                     if not admin_manager.IS_BETTING_OPEN:
-                        print(f"🎲 GAMBA: @{username} tried to bet, but betting is currently closed.")
+                        print(f"🔒 GAMBA LCOKED: @{username} tried to bet, but 5m window closed")
+                    else:
+                        print(f"🎲 GAMBA CLOSED: @{username} tried to bet, but no pool is open.")
                         continue
                         
                     parts = message_text.split()
                     if len(parts) >= 3:
                         try:
-                            amount = int(parts)
-                            vote = parts.lower()
+                            amount = int(parts[1])
+                            vote = parts[2].lower()
+
                             if vote not in admin_manager.VALID_OPTIONS or amount <= 0:
                                 continue
 
                             success, gamba_msg = database.place_bet(username, amount, vote)
-                            # Let the player know their bet went through
-                            # sender.send_message(f"@{username} {gamba_msg}")
                             print(f"🎲 GAMBA: @{username} -> {gamba_msg}")
                         except ValueError:
-                            print(f"🎲 GAMBA: @{username} -> ❌ Invalid amount input.")
                             pass
 
             # Sleep slightly to prevent CPU spinning, pytchat handles its own polling rates internally

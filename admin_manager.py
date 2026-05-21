@@ -1,12 +1,16 @@
+import time
 import database
 
 # Ensure your actual YouTube channel ID or username strings are in here
-ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w"]
+ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g"] # @magicmskh, @barelyalec, @notalecprobably, 
 
 # Live in-memory tracking of the current betting state
 IS_BETTING_OPEN = False
 VALID_OPTIONS = []
 CURRENT_QUESTION = ""
+BET_OPEN_TIMESTAMP = 0
+BET_DURATION_SECONDS = 300
+HAS_ANNOUNCED_LOCK = False
 
 def process_admin_command(sender_id, sender_name, message_text):
     """
@@ -37,12 +41,12 @@ def process_admin_command(sender_id, sender_name, message_text):
         if IS_BETTING_OPEN:
             return f"⚠️ A betting round is already active: '{CURRENT_QUESTION}'"
 
-        # Parse valid choices (comma-separated, forced to lowercase)
         VALID_OPTIONS = [opt.strip().lower() for opt in parts[1].split(",")]
-        # Join the remaining text parts to reconstruct the streamer's question
         CURRENT_QUESTION = " ".join(parts[2:])
-        
         IS_BETTING_OPEN = True
+        BET_OPEN_TIMESTAMP = time.time()
+        HAS_ANNOUNCED_LOCK = False # Reset flag for new round
+
         return f"🎰 BETTING OPENED! 🎰\n❓ Question: {CURRENT_QUESTION}\n📋 Valid Options: {', '.join(VALID_OPTIONS)}\n👉 Type !gamba [amount] [option] to play!"
 
     # ==========================================
@@ -61,7 +65,6 @@ def process_admin_command(sender_id, sender_name, message_text):
         if winning_choice not in VALID_OPTIONS:
             return f"❌ Invalid option. Choose from: {', '.join(VALID_OPTIONS)}"
 
-        # Resolve the bets via the database function we wrote earlier
         winners_paid = database.resolve_bets(winning_choice)
         sheets_sync.sync_to_google_sheets()
         
@@ -69,6 +72,8 @@ def process_admin_command(sender_id, sender_name, message_text):
         IS_BETTING_OPEN = False
         VALID_OPTIONS = []
         CURRENT_QUESTION = ""
+        BET_OPEN_TIMESTAMP = 0
+        HAS_ANNOUNCED_LOCK = False
         
         return f"🏆 BET RESOLVED! The winning choice was '{winning_choice}'. Paid out 2x to {winners_paid} winners! 💰"
 
@@ -80,14 +85,14 @@ def process_admin_command(sender_id, sender_name, message_text):
         if not IS_BETTING_OPEN:
             return "⚠️ There is no active betting pool to cancel."
 
-        # Call our database emergency fallback refund loop
         count, refund_msg = database.cancel_and_refund_bets()
         sheets_sync.sync_to_google_sheets()
         
-        # Reset state for next round
         IS_BETTING_OPEN = False
         VALID_OPTIONS = []
         CURRENT_QUESTION = ""
+        BET_OPEN_TIMESTAMP = 0
+        HAS_ANNOUNCED_LOCK = False
         
         return f"🔄 BET CANCELLED: All points have been safely returned to players."
 
@@ -157,3 +162,13 @@ def process_admin_command(sender_id, sender_name, message_text):
             return f"❌ Database error: {str(e)}"
 
     return None
+
+def is_betting_period_active():
+    if not IS_BETTING_OPEN:
+        return False
+
+    elapsed_time = time.time() - BET_OPEN_TIMESTAMP
+    if elapsed_time < BET_DURATION_SECONDS:
+        return True
+    else:
+        return False

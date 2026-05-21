@@ -11,6 +11,7 @@ Use your points to place bets and climb the all-time channel leaderboard.
 Points are tracked automatically -- your balance will never reset between streams! (Unless something catastrophic happens...)
 Here are the ways that channel points can be earned:
 
+* New Users: New users get 1000 points if you're new. Simply send a chat message while the bot is active to register - easy as that!
 * Active Chatting: Earn 10 points per chat message (30 second cooldown)
 * Passive Watching: Earn 50 points every 5 minutes automatically if you have typed in chat within the last 15 minutes.
 * Channel Member Bonus: Members of the channel receive a 1.2x point multiplier on all chatting rewards!
