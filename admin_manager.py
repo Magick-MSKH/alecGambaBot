@@ -2,7 +2,7 @@ import time
 import database
 
 # Ensure your actual YouTube channel ID or username strings are in here
-ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g"] # @magicmskh, @barelyalec, @notalecprobably, 
+ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCkYwhjg79txij8wDA-Jiv5Q"] # @magicmskh, @barelyalec, @notalecprobably, @larrryft
 
 # Live in-memory tracking of the current betting state
 IS_BETTING_OPEN = False
@@ -23,7 +23,13 @@ def process_admin_command(sender_id, sender_name, message_text):
         return None
 
     # Security Check: Block non-admins instantly
-    if sender_id not in ADMIN_IDS and sender_name not in ["magickmskh", "ConsoleAdmin"]: # Removed "Magick" in case of bypass
+    if sender_id not in ADMIN_IDS and sender_name not in [
+        "magickmskh",
+        "ConsoleAdmin",
+        "BarelyAlec",
+        "NotAlecprobably",
+        "larrryft"
+        ]:
         return None  # Return None quietly so non-admins don't trigger error spam
 
     parts = message_text.split()
