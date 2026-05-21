@@ -13,10 +13,11 @@ class YouTubeChatSender:
         print("\n🌐 Opening a dedicated browser window for chat output...")
         self.playwright = sync_playwright().start()
         
-        # We use a user_data_dir so the browser saves your login cookies
+        # Use native Chrome installation instead of debug/dev one
         self.browser = self.playwright.chromium.launch_persistent_context(
             user_data_dir="./user_data",
-            headless=False # Keep this visible so you can log into YouTube
+            headless=False,
+            channel="chrome"
         )
         
         self.page = self.browser.pages[0]

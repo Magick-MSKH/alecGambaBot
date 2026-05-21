@@ -27,7 +27,7 @@ def run_bot():
         return
 
     # 0b. Generate clean standalone live chat pop-out URL
-    stream_url = f"https://youtube.com{video_id}"
+    STREAM_URL = f"https://youtube.com/live/{video_id}"
 
     # 1. Init chat writer
     sender = YouTubeChatSender(STREAM_URL)
@@ -143,12 +143,12 @@ def run_bot():
                 # 5. Handle Gamba betting execution
                 if message_text.startswith("!gamba"):
                     if not admin_manager.is_betting_period_active():
-                    if not admin_manager.IS_BETTING_OPEN:
-                        print(f"🔒 GAMBA LCOKED: @{username} tried to bet, but 5m window closed")
-                    else:
-                        print(f"🎲 GAMBA CLOSED: @{username} tried to bet, but no pool is open.")
-                        continue
-                        
+                        if not admin_manager.IS_BETTING_OPEN:
+                            print(f"🔒 GAMBA LCOKED: @{username} tried to bet, but 5m window closed")
+                        else:
+                            print(f"🎲 GAMBA CLOSED: @{username} tried to bet, but no pool is open.")
+                            continue
+                            
                     parts = message_text.split()
                     if len(parts) >= 3:
                         try:

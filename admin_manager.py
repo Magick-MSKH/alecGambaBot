@@ -145,7 +145,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     # COMMAND 6: !give_all [amount]
     # ==========================================
 
-    elif command == "!give_all"
+    elif command == "!give_all":
         if len(parts) < 2:
             return "⚠️ Usage: !give_all [amount]"
 
