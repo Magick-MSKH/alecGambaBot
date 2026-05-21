@@ -16,7 +16,7 @@ def process_user_command(username, message_text):
     if command in ["!balance", "!points", "!cash"]:
         try:
             balance = database.get_balance(username)
-            return f"💰 @{username}, you currently have {balance} points!"
+            return f"💰 {username}, you currently have {balance} points!"
         except Exception as e:
             return f"❌ ERROR Checking balance: {str(e)}"
 
@@ -31,7 +31,7 @@ def process_user_command(username, message_text):
             # Format players nicely into a single chat string line
             rank_strings = []
             for i, (username, points) in enumerate(top_players, 1):
-                rank_strings.append(f"#{i} @{username} ({points} pts)")
+                rank_strings.append(f"#{i} {username} ({points} pts)")
                 
             return response + " | ".join(rank_strings)
         except Exception as e:
@@ -41,9 +41,9 @@ def process_user_command(username, message_text):
     elif command in ["!stats", "!profile", "!gamba_stats"]:
         stats = database.get_player_stats(username)
         if not stats:
-            return f"📋 Username @{username}, no stats found yet! Type in chat to register."
+            return f"📋 Username {username}, no stats found yet! Type in chat to register."
         points, placed, won, lost, peak = stats
-        return f"📊 @{username}: {points} pts | Bets: {placed} (🏆{won}W /❌{lost}L) | Personal Peak: {peak} pts"
+        return f"📊 {username}: {points} pts | Bets: {placed} (🏆{won}W /❌{lost}L) | Personal Peak: {peak} pts"
 
     # 4. Handle Peak commands
     elif command in ["!record", "!peak", "!halloffame"]:
@@ -51,7 +51,7 @@ def process_user_command(username, message_text):
         if not record or record[1] == 1000:
             return "👑 No historical peak record has broken past the starting line yet!"
         record_holder, record_points = record
-        return f"👑 ALL-TIME RECORD: @{record_holder} achieved a peak of {record_points} points! 🔥"
+        return f"👑 ALL-TIME RECORD: {record_holder} achieved a peak of {record_points} points! 🔥"
 
 
     # 5. Handle Help Command

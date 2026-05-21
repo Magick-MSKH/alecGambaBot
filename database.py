@@ -105,7 +105,7 @@ def resolve_bets(winning_type):
     cursor.execute("UPDATE users SET bets_lost = bets_lost + 1 WHERE username IN (SELECT username FROM bets WHERE vote_type != ?)", (winning_type,))
 
     # 2. Get & Process Winners
-    cursor.execute("SELECT username, amount FROM bets WHERE vote_type = ?", (winning_type))
+    cursor.execute("SELECT username, amount FROM bets WHERE vote_type = ?", (winning_type,))
     winners = cursor.fetchall()
 
     for username, amount in winners:
@@ -202,7 +202,7 @@ def add_points_to_all_registered(amount):
     cursor = conn.cursor()
 
     # Update every single row in the users table simultaneously
-    cursor.excecute("UPDATE users SET points = points + ?", (amount,))
+    cursor.execute("UPDATE users SET points = points + ?", (amount,))
 
     conn.commit()
     conn.close()
@@ -211,7 +211,7 @@ def update_peak_balance(username):
     """ Checks if current points beat the user's previous high score """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.excecute("UPDATE users SET highest_peak = points WHERE username = ? AND points > highest_peak", (username,))
+    cursor.execute("UPDATE users SET highest_peak = points WHERE username = ? AND points > highest_peak", (username,))
     conn.commit()
     conn.close()
 

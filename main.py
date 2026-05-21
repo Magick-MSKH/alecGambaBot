@@ -19,15 +19,15 @@ def run_bot():
 
     # 0a. Prompt for Video ID dynamically via stdin
     print("=" * 30)
-    video_id = input("👉 Enter YouTube Stream Video ID: ").strip()
+    VIDEO_ID = input("👉 Enter YouTube Stream Video ID: ").strip()
     print("=" * 30)
 
-    if not video_id:
+    if not VIDEO_ID:
         print("❌ Error: Video ID cannot be empty.")
         return
 
     # 0b. Generate clean standalone live chat pop-out URL
-    STREAM_URL = f"https://youtube.com/live/{video_id}"
+    STREAM_URL = f"https://youtube.com/live_chat?v={VIDEO_ID}"
 
     # 1. Init chat writer
     sender = YouTubeChatSender(STREAM_URL)
@@ -73,6 +73,10 @@ def run_bot():
                 username = c.author.name
                 channel_id = c.author.channelId
                 message_text = c.message
+                message_type = "textMessageEvent"
+
+                if username == "MagickBot0":
+                    continue
 
                 # NEW!: Determine if the user has an active channel membership
                 is_member = getattr(c.author, "isChatSponsor", False)
@@ -80,23 +84,21 @@ def run_bot():
                 points_manager.process_incoming_message(
                     username,
                     message_text,
-                    "textMessageEvent",
+                    message_type, # textMessageEvent
                     is_member=is_member
                 )
 
                 # NEW: Publicly celebrate Super Chats and Member Milestones in chat!
                 if message_type == "superChatEvent":
                     donation_amount = details.get("amount", 0)
-                    sender.send_message(f"🌟 THANK YOU @{username}! Your ${donation_amount} donation earned you bonus points! 👑")
+                    sender.send_message(f"🌟 THANK YOU {username}! Your ${donation_amount} donation earned you bonus points! 👑")
 
                 elif message_type == "membershipGIFTEvent" or message_type == "newSponsorEvent":
-                    sender.send_message(f"👑 HYPE! @{username} just supported the channel and received a massive point drop! 🚀")
+                    sender.send_message(f"👑 HYPE! {username} just supported the channel and received a massive point drop! 🚀")
 
                 # Catch once-a-month Free Member Milestone Announcement
                 elif message_type == "memberMilestoneChatEvent":
-                    # Fallback to 1 month if pytchat doesn't read the metadata object (for whatever reason)
                     months = 1
-
                     # Attempt to pull raw API dictionary block out of pytchat object struct
                     try:
                         if hasattr(c, 'rawdata') and 'memberMilestoneChatDetails' in c.rawdata:
@@ -104,6 +106,7 @@ def run_bot():
                     except Exception:
                         pass
 
+                    
                     # Calculate bonus using dynamic formula
                     dynamic_payout = 1000 + (months * 250)
 
@@ -117,11 +120,11 @@ def run_bot():
 
                     # Send message into chat
                     sender.send_message(
-                        f"🏆 MILESTONE! @{username} claimed their Month {months} Milestone Chat "
+                        f"🏆 MILESTONE! {username} claimed their Month {months} Milestone Chat "
                         f"and earned 🎁 {dynamic_payout} points!"
                     )
 
-                print(f"🏆 Milestone! @{username} used their Member Milestone Chat and was awarded {POINTS_MEMBER_MILESTONE} points!")
+                print(f"🏆 Milestone! {username} used their Member Milestone Chat and was awarded bonus points!")
 
                 # Format a clean console log for you to read while streaming
                 print(f"💬 [{c.datetime}] {username}: {message_text}")
@@ -144,9 +147,9 @@ def run_bot():
                 if message_text.startswith("!gamba"):
                     if not admin_manager.is_betting_period_active():
                         if not admin_manager.IS_BETTING_OPEN:
-                            print(f"🔒 GAMBA LCOKED: @{username} tried to bet, but 5m window closed")
+                            print(f"🔒 GAMBA LCOKED: {username} tried to bet, but 5m window closed")
                         else:
-                            print(f"🎲 GAMBA CLOSED: @{username} tried to bet, but no pool is open.")
+                            print(f"🎲 GAMBA CLOSED: {username} tried to bet, but no pool is open.")
                             continue
                             
                     parts = message_text.split()
@@ -159,7 +162,7 @@ def run_bot():
                                 continue
 
                             success, gamba_msg = database.place_bet(username, amount, vote)
-                            print(f"🎲 GAMBA: @{username} -> {gamba_msg}")
+                            print(f"🎲 GAMBA: {username} -> {gamba_msg}")
                         except ValueError:
                             pass
 

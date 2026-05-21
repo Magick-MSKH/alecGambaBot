@@ -26,7 +26,7 @@ class YouTubeChatSender:
         self.browser = self.playwright.chromium.launch_persistent_context(
             user_data_dir="./user_data",
             headless=False,
-            channel="chrome" # Points directly to the Chrome installation
+            channel="chrome", # Points directly to the Chrome installation
             args=stealth_args, # Inject anti-bot detection arguments
             ignore_default_args=["--enable-automation"]
         )
@@ -41,9 +41,9 @@ class YouTubeChatSender:
         """Finds the YouTube chat box, types the response, and presses Enter """
         try:
             # Universal selector that targets the main live chat input box field
-            chat_input_selector = 'div#input[contenteditable="true"]'
+            chat_input_selector = 'div#input[contenteditable="true"], yt-live-chat-text-input-field-renderer div#input'
             
-            self.page.wait_for_selector(chat_input_selector, timeout=5000)
+            self.page.wait_for_selector(chat_input_selector, timeout=9999)
             self.page.click(chat_input_selector)
             self.page.fill(chat_input_selector, text)
             self.page.keyboard.press("Enter")

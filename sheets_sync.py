@@ -26,6 +26,16 @@ def sync_to_google_sheets():
         
         # 4. Format data with headers
         sheet_data = [["Rank", "Username", "Current Points", "Total Bets", "Wins", "Losses", "All-Time Peak"]]
+
+        if not rows:
+            sheet_data.append(["#0", "No players registered yet!", 0, 0, 0, 0, 0])
+            worksheet.clear()
+            worksheet.update('A1', sheet_data)
+            print("📊 Data tab cleared and initialized for a clean slate!")
+            return
+
+
+
         for index, (username, points) in enumerate(rows, 1):
             # Fetch stats per row to populate columns D:G
             stats = database.get_player_stats(username)
