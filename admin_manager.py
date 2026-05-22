@@ -170,7 +170,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     return None
 
 def is_betting_period_active():
-    if not IS_BETTING_OPEN:
+    if not IS_BETTING_OPEN or BET_OPEN_TIMESTAMP == 0:
         return False
 
     elapsed_time = time.time() - BET_OPEN_TIMESTAMP

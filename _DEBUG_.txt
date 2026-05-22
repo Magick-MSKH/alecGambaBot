@@ -1,5 +1,4 @@
 ⚠️ Google Sheets Sync Failed: cannot unpack non-iterable NoneType object
+*should be fixed
 
- Loop encountered an error: Incorrect number of bindings supplied. The current statement uses 1, and there are 3 supplied.
-
-ADD !gamba_lock to lock bets manually and clear 5min timer
+Add: !gamba_lock to lock bets manually and clear 5min timer

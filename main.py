@@ -60,71 +60,99 @@ def run_bot():
                 last_passive_tick = current_time
 
             if admin_manager.IS_BETTING_OPEN and not admin_manager.HAS_ANNOUNCED_LOCK:
-                elapsed_bet_time = current_time - admin_manager.BET_OPEN_TIMESTAMP
-                if elapsed_bet_time >= admin_manager.BET_DURATION_SECONDS:
-                    admin_manager.HAS_ANNOUNCED_LOCK = True
-                    # Announce Bet Lock
-                    lock_msg = "🔒 Betting is now officialy LOCKED! 🔒"
-                    sender.send_message(lock_msg)
-                    print("🔒 [CHANNEL RELAY] Sent pool closure alert to Live Chat.")
+                # Add safety gate to ensure timestamp has actually been set
+                if admin_manager.BET_OPEN_TIMESTAMP > 0:
+                    elapsed_bet_time = current_time - admin_manager.BET_OPEN_TIMESTAMP
+                    if elapsed_bet_time >= admin_manager.BET_DURATION_SECONDS:
+                        admin_manager.HAS_ANNOUNCED_LOCK = True
+                        lock_msg = "🔒 TIME IS UP! Betting pool is now LOCKED!"
+                        sender.send_message(lock_msg)
+                        print("🔒 [CHANNEL RELAY] Sent pool closure alert to Live Chat.")
 
-            # 2. Get latest batch of chat messages
+                        # Inside main.py's chat scanning loop:
             for c in chat.get().sync_items():
                 username = c.author.name
                 channel_id = c.author.channelId
-                message_text = c.message
-                message_type = "textMessageEvent"
-
+                message_text = getattr(c, "message", "") # Safety fallback if no text message exists
+                
                 if username == "MagickBot0":
                     continue
 
-                # NEW!: Determine if the user has an active channel membership
+                # 1. WATERTIED EVENT CLASSIFICATION
+                # Default to a regular chat message event
+                message_type = "textMessageEvent" 
+                details = {}
+
+                # Check if it's a Member Milestone Chat
+                if hasattr(c, 'type') and c.type == "memberMilestoneChatEvent":
+                    message_type = "memberMilestoneChatEvent"
+
+                # Check if it's a Super Chat (Donation)
+                elif hasattr(c, 'type') and c.type == "superChatEvent":
+                    message_type = "superChatEvent"
+                    # Extract the currency amount from the superchat metadata
+                    try:
+                        details["amount"] = float(c.amountValue) 
+                    except Exception:
+                        details["amount"] = 0.0
+
+                # Check if it's a New Member or a Membership Gift Event
+                elif hasattr(c, 'type') and c.type in ["newSponsorEvent", "membershipGIFTEvent"]:
+                    message_type = "membershipGIFTEvent"
+
+                # 2. Process points silently behind the scenes
                 is_member = getattr(c.author, "isChatSponsor", False)
-                # Pass membership flag into points engine
                 points_manager.process_incoming_message(
-                    username,
-                    message_text,
-                    message_type, # textMessageEvent
+                    username, 
+                    message_text, 
+                    message_type, 
+                    details=details, 
                     is_member=is_member
                 )
 
-                # NEW: Publicly celebrate Super Chats and Member Milestones in chat!
-                if message_type == "superChatEvent":
-                    donation_amount = details.get("amount", 0)
-                    sender.send_message(f"🌟 THANK YOU {username}! Your ${donation_amount} donation earned you bonus points! 👑")
+                # 3. ROUTE THE ACTIONS BASED ON TYPE
+                # Route A: Standard text chat & user/admin commands
+                if message_type == "textMessageEvent":
+                    print(f"💬 {username}: {message_text}")
+                    
+                    bot_reply = command_manager.process_user_command(username, message_text)
+                    if bot_reply:
+                        sender.send_message(bot_reply)
+                        continue
 
-                elif message_type == "membershipGIFTEvent" or message_type == "newSponsorEvent":
-                    sender.send_message(f"👑 HYPE! {username} just supported the channel and received a massive point drop! 🚀")
+                    admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
+                    if admin_reply:
+                        sender.send_message(admin_reply)
+                        continue
 
-                # Catch once-a-month Free Member Milestone Announcement
+                # Route B: Public Milestone Shoutout
                 elif message_type == "memberMilestoneChatEvent":
                     months = 1
-                    # Attempt to pull raw API dictionary block out of pytchat object struct
                     try:
                         if hasattr(c, 'rawdata') and 'memberMilestoneChatDetails' in c.rawdata:
                             months = c.rawdata['memberMilestoneChatDetails'].get('memberMonth', 1)
                     except Exception:
                         pass
-
                     
-                    # Calculate bonus using dynamic formula
                     dynamic_payout = 1000 + (months * 250)
-
-                    # Pass the event info to the points manager
-                    points_manager.process_incoming_message(
-                        username,
-                        message_text,
-                        "memberMilestoneChatEvent",
-                        details={"months": months}
-                    )
-
-                    # Send message into chat
                     sender.send_message(
-                        f"🏆 MILESTONE! {username} claimed their Month {months} Milestone Chat "
-                        f"and earned 🎁 {dynamic_payout} points!"
+                        f"🏆 MILESTONE! @{username} claimed their Month {months} member card "
+                        f"and scored a dynamic reward of 🎁 {dynamic_payout:,} points! 🎁"
                     )
+                    continue
 
-                print(f"🏆 Milestone! {username} used their Member Milestone Chat and was awarded bonus points!")
+                # Route C: Public Super Chat Celebration
+                elif message_type == "superChatEvent":
+                    donation_amount = details.get("amount", 0.0)
+                    print(f"🌟 SUPER CHAT: {username} donated ${donation_amount}")
+                    sender.send_message(f"🌟 THANK YOU @{username}! Your ${donation_amount:.2f} donation earned you a massive points bonus! 👑")
+                    continue
+
+                # Route D: Public Membership Tier Upgrade Celebration
+                elif message_type == "membershipGIFTEvent":
+                    print(f"👑 MEMBER EVENT: {username} supported the channel!")
+                    sender.send_message(f"👑 HYPE! @{username} just supported the channel and received a massive point drop! 🚀")
+                    continue
 
                 # Format a clean console log for you to read while streaming
                 print(f"💬 [{c.datetime}] {username}: {message_text}")
@@ -145,26 +173,30 @@ def run_bot():
 
                 # 5. Handle Gamba betting execution
                 if message_text.startswith("!gamba"):
+                    # FIX: Force main.py to call the evaluation function from admin_manager!
+                    # This bridges the memory tracking loop across files instantly.
                     if not admin_manager.is_betting_period_active():
-                        if not admin_manager.IS_BETTING_OPEN:
-                            print(f"🔒 GAMBA LCOKED: {username} tried to bet, but 5m window closed")
+                        if admin_manager.IS_BETTING_OPEN:
+                            print(f"🔒 GAMBA LOCKED: @{username} tried to bet, but the 5-minute window has closed.")
                         else:
-                            print(f"🎲 GAMBA CLOSED: {username} tried to bet, but no pool is open.")
-                            continue
-                            
+                            print(f"🎲 GAMBA CLOSED: @{username} tried to bet, but no pool is open.")
+                        continue
+                        
                     parts = message_text.split()
                     if len(parts) >= 3:
                         try:
                             amount = int(parts[1])
                             vote = parts[2].lower()
-
+                            
+                            # Validate choice against active variables
                             if vote not in admin_manager.VALID_OPTIONS or amount <= 0:
                                 continue
 
                             success, gamba_msg = database.place_bet(username, amount, vote)
-                            print(f"🎲 GAMBA: {username} -> {gamba_msg}")
+                            print(f"🎲 GAMBA REGISTERED: @{username} -> {gamba_msg}")
                         except ValueError:
                             pass
+
 
             # Sleep slightly to prevent CPU spinning, pytchat handles its own polling rates internally
             time.sleep(1)

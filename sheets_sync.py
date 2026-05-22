@@ -39,7 +39,12 @@ def sync_to_google_sheets():
         for index, (username, points) in enumerate(rows, 1):
             # Fetch stats per row to populate columns D:G
             stats = database.get_player_stats(username)
-            _, placed, won, lost, peak = stats
+
+            if stats is None:
+                placed, won, lost, peak = 0, 0, 0, points
+            else:
+                _, placed, won, lost, peak = stats
+            
             sheet_data.append([f"#{index}", username, points, placed, won, lost, peak])
             
         # 5. Clear the old data and write the new list
