@@ -175,13 +175,15 @@ def run_bot():
                 if message_text.startswith("!gamba"):
                     # FIX: Force main.py to call the evaluation function from admin_manager!
                     # This bridges the memory tracking loop across files instantly.
-                    if not admin_manager.is_betting_period_active():
-                        if admin_manager.IS_BETTING_OPEN:
-                            print(f"🔒 GAMBA LOCKED: @{username} tried to bet, but the 5-minute window has closed.")
-                        else:
-                            print(f"🎲 GAMBA CLOSED: @{username} tried to bet, but no pool is open.")
+                    if not admin_manager.IS_BETTING_OPEN:
+                        print(f"🎲 GAMBA CLOSED: @{username} tried to bet, but no pool is open.")
                         continue
                         
+                    # NEW FLAG CHECK: Instantly reject entries if you manually locked it
+                    if admin_manager.IS_BETTING_LOCKED:
+                        print(f"🔒 GAMBA LOCKED: @{username} tried to bet, but the pool is locked.")
+                        continue
+
                     parts = message_text.split()
                     if len(parts) >= 3:
                         try:

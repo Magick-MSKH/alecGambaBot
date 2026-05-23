@@ -97,37 +97,46 @@ def place_bet(username, amount, vote_type):
         conn.close()
 
 def resolve_bets(winning_type):
-    """ Pays out 2x to the winners, logs win/loss stats, and clears the betting pool """
+    def resolve_bets(winning_type):
+    """Pays out winners, logs win/loss stats, updates peaks, and clears pool cleanly."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-
-    # 1. Update Losers first (everyone whose vote_type != winning type)
-    cursor.execute("UPDATE users SET bets_lost = bets_lost + 1 WHERE username IN (SELECT username FROM bets WHERE vote_type != ?)", (winning_type,))
-
-    # 2. Get & Process Winners
-    cursor.execute("SELECT username, amount FROM bets WHERE vote_type = ?", (winning_type,))
-    winners = cursor.fetchall()
-
-    for username, amount in winners:
-        payout = amount * 2
-        cursor.execute("UPDATE users SET points = points + ?, bets_won = bets_won + 1 WHERE username = ?", (payout, username))
-
+    
+    try:
+        # 1. Update Losers first (everyone whose vote_type DOES NOT match)
+        cursor.execute(
+            "UPDATE users SET bets_lost = bets_lost + 1 WHERE username IN (SELECT username FROM bets WHERE vote_type != ?)", 
+            (winning_type,)
+        )
+        
+        # 2. Get and Process Winners
+        cursor.execute("SELECT username, amount FROM bets WHERE vote_type = ?", (winning_type,))
+        winners = cursor.fetchall()
+        
+        # 3. Pay back double the bet amount to winners and update win counts
+        for username, amount in winners:
+            payout = amount * 2
+            cursor.execute("UPDATE users SET points = points + ?, bets_won = bets_won + 1 WHERE username = ?", (payout, username))
+            
+            # FIX THE LOCK: Run the peak balance check directly on THIS active cursor
+            # instead of calling a separate function that opens a new connection!
+            cursor.execute("UPDATE users SET highest_peak = points WHERE username = ? AND points > highest_peak", (username,))
+            
+        # 4. Clear the active bets pool table clean
+        cursor.execute("DELETE FROM bets")
+        
+        # Commit ALL updates together in one single transaction block
         conn.commit()
+        return len(winners)
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Database resolve error: {e}")
+        return 0
+    finally:
+        # Safely shut down the connection so main.py can read chat again
         conn.close()
 
-    # 3. Mass update historical peaks for everyone who just gained points
-    for username, _ in winners:
-        update_peak_balance(username)
-
-    # 4. Clear active BETS pool
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM bets")
-
-    conn.commit()
-    conn.close()
-
-    return len(winners)
 
 def add_points(username, amount):
     """ Adds (or subtracts) points for a specific user """

@@ -16,6 +16,10 @@ def process_incoming_message(username, message_text, message_type, details=None,
     """ Processes a single chat event. Call this every time the bot reads a message 
         Members receive a 1.2x multiplier!
     """
+
+    if username == "MagickBot0":
+        return
+    
     current_time = time.time()
 
     # Mark user as active for passive point loops (lasts 15 minutes)
