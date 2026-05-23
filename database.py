@@ -97,7 +97,6 @@ def place_bet(username, amount, vote_type):
         conn.close()
 
 def resolve_bets(winning_type):
-    def resolve_bets(winning_type):
     """Pays out winners, logs win/loss stats, updates peaks, and clears pool cleanly."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()

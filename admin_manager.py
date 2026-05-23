@@ -4,13 +4,10 @@ import database
 # Ensure your actual YouTube channel ID or username strings are in here
 ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCkYwhjg79txij8wDA-Jiv5Q"] # @magicmskh, @barelyalec, @notalecprobably, @larrryft
 
-import database
-
-ADMIN_IDS = ["YOUR_YOUTUBE_CHANNEL_ID", "ALEC_STREAM_CHANNEL_ID"]
-
 # Live in-memory tracking of the current betting state
 IS_BETTING_OPEN = False
 IS_BETTING_LOCKED = False  # NEW: Simple boolean flag to stop entries
+HAS_ANNOUNCED_LOCK = False
 VALID_OPTIONS = []
 CURRENT_QUESTION = ""
 
@@ -18,7 +15,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     """
     Parses chat messages from stream admins to manage betting states manually.
     """
-    global IS_BETTING_OPEN, IS_BETTING_LOCKED, VALID_OPTIONS, CURRENT_QUESTION
+    global IS_BETTING_OPEN, IS_BETTING_LOCKED, VALID_OPTIONS, CURRENT_QUESTION, HAS_ANNOUNCED_LOCK
 
     if not message_text.startswith("!"):
         return None
@@ -34,7 +31,7 @@ def process_admin_command(sender_id, sender_name, message_text):
         return None
 
     parts = message_text.split()
-    command = parts.lower()
+    command = parts[0].lower()
 
     # ==========================================
     # COMMAND 1: !gamba_open [option1,option2] [Question text...]
@@ -46,7 +43,7 @@ def process_admin_command(sender_id, sender_name, message_text):
         if IS_BETTING_OPEN:
             return f"⚠️ A betting round is already active: '{CURRENT_QUESTION}'"
 
-        VALID_OPTIONS = [opt.strip().lower() for opt in parts.split(",")]
+        VALID_OPTIONS = [opt.strip().lower() for opt in parts[1].split(",")]
         CURRENT_QUESTION = " ".join(parts[2:])
         
         IS_BETTING_OPEN = True
@@ -76,7 +73,7 @@ def process_admin_command(sender_id, sender_name, message_text):
         if len(parts) < 2:
             return f"⚠️ Usage: !gamba_win [option] (Valid options are: {', '.join(VALID_OPTIONS)})"
             
-        winning_choice = parts.lower()
+        winning_choice = parts[1].lower()
         if winning_choice not in VALID_OPTIONS:
             return f"❌ Invalid option. Choose from: {', '.join(VALID_OPTIONS)}"
 
@@ -113,7 +110,7 @@ def process_admin_command(sender_id, sender_name, message_text):
         if len(parts) < 3:
             return "⚠️ Usage: !give [username] [amount]"
             
-        target_username = parts
+        target_username = parts[1]
         try:
             amount = int(parts)
             database.add_points(target_username, amount)
@@ -140,8 +137,8 @@ def process_admin_command(sender_id, sender_name, message_text):
             conn.commit()
             conn.close()
         
-            return f"🔄 Reset points for @{target_username} back to 1000."
-            
+            return f"🔄 Reset points for {target_username} back to 1000."
+
         except Exception as e:
             return f"❌ Reset error: {str(e)}"
     
@@ -171,6 +168,5 @@ def process_admin_command(sender_id, sender_name, message_text):
             return "❌ Error: Amount must be an integer."
         except Exception as e:
             return f"❌ Database error: {str(e)}"
-
 
     return None

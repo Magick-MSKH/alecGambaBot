@@ -59,17 +59,6 @@ def run_bot():
                 sheets_sync.sync_to_google_sheets() # Run Google Sheets updater code after points shift
                 last_passive_tick = current_time
 
-            if admin_manager.IS_BETTING_OPEN and not admin_manager.HAS_ANNOUNCED_LOCK:
-                # Add safety gate to ensure timestamp has actually been set
-                if admin_manager.BET_OPEN_TIMESTAMP > 0:
-                    elapsed_bet_time = current_time - admin_manager.BET_OPEN_TIMESTAMP
-                    if elapsed_bet_time >= admin_manager.BET_DURATION_SECONDS:
-                        admin_manager.HAS_ANNOUNCED_LOCK = True
-                        lock_msg = "🔒 TIME IS UP! Betting pool is now LOCKED!"
-                        sender.send_message(lock_msg)
-                        print("🔒 [CHANNEL RELAY] Sent pool closure alert to Live Chat.")
-
-                        # Inside main.py's chat scanning loop:
             for c in chat.get().sync_items():
                 username = c.author.name
                 channel_id = c.author.channelId
@@ -136,7 +125,7 @@ def run_bot():
                     
                     dynamic_payout = 1000 + (months * 250)
                     sender.send_message(
-                        f"🏆 MILESTONE! @{username} claimed their Month {months} member card "
+                        f"🏆 MILESTONE! {username} claimed their Month {months} member card "
                         f"and scored a dynamic reward of 🎁 {dynamic_payout:,} points! 🎁"
                     )
                     continue
@@ -145,13 +134,13 @@ def run_bot():
                 elif message_type == "superChatEvent":
                     donation_amount = details.get("amount", 0.0)
                     print(f"🌟 SUPER CHAT: {username} donated ${donation_amount}")
-                    sender.send_message(f"🌟 THANK YOU @{username}! Your ${donation_amount:.2f} donation earned you a massive points bonus! 👑")
+                    sender.send_message(f"🌟 THANK YOU {username}! Your ${donation_amount:.2f} donation earned you a massive points bonus! 👑")
                     continue
 
                 # Route D: Public Membership Tier Upgrade Celebration
                 elif message_type == "membershipGIFTEvent":
                     print(f"👑 MEMBER EVENT: {username} supported the channel!")
-                    sender.send_message(f"👑 HYPE! @{username} just supported the channel and received a massive point drop! 🚀")
+                    sender.send_message(f"👑 HYPE! {username} just supported the channel and received a massive point drop! 🚀")
                     continue
 
                 # Format a clean console log for you to read while streaming
@@ -176,12 +165,12 @@ def run_bot():
                     # FIX: Force main.py to call the evaluation function from admin_manager!
                     # This bridges the memory tracking loop across files instantly.
                     if not admin_manager.IS_BETTING_OPEN:
-                        print(f"🎲 GAMBA CLOSED: @{username} tried to bet, but no pool is open.")
+                        print(f"🎲 GAMBA CLOSED: {username} tried to bet, but no pool is open.")
                         continue
                         
                     # NEW FLAG CHECK: Instantly reject entries if you manually locked it
                     if admin_manager.IS_BETTING_LOCKED:
-                        print(f"🔒 GAMBA LOCKED: @{username} tried to bet, but the pool is locked.")
+                        print(f"🔒 GAMBA LOCKED: {username} tried to bet, but the pool is locked.")
                         continue
 
                     parts = message_text.split()
@@ -195,7 +184,7 @@ def run_bot():
                                 continue
 
                             success, gamba_msg = database.place_bet(username, amount, vote)
-                            print(f"🎲 GAMBA REGISTERED: @{username} -> {gamba_msg}")
+                            print(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
                         except ValueError:
                             pass
 

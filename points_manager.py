@@ -17,7 +17,7 @@ def process_incoming_message(username, message_text, message_type, details=None,
         Members receive a 1.2x multiplier!
     """
 
-    if username == "MagickBot0":
+    if username == "@MagickBot0":
         return
     
     current_time = time.time()
