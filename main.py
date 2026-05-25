@@ -8,11 +8,6 @@ import command_manager
 import terminal_controller
 from chat_sender import YouTubeChatSender
 
-# Configuration
-# VIDEO_ID = youtube.com/*********** (string of characters at the end of the live stream URL)
-# VIDEO_ID = "YOUTUBE_STREAM_VIDEO_ID"
-# STREAM_URL = f"https://youtube.com{VIDEO_ID}" # Opens just the chat window
-
 def run_bot():
     # Init SQLite tables
     database.init_db()
@@ -64,7 +59,7 @@ def run_bot():
                 channel_id = c.author.channelId
                 message_text = getattr(c, "message", "") # Safety fallback if no text message exists
                 
-                if username == "MagickBot0":
+                if username == "@MagickBot0":
                     continue
 
                 # 1. WATERTIED EVENT CLASSIFICATION
@@ -128,6 +123,9 @@ def run_bot():
                         f"🏆 MILESTONE! {username} claimed their Month {months} member card "
                         f"and scored a dynamic reward of 🎁 {dynamic_payout:,} points! 🎁"
                     )
+
+                    # Force an immediate Google Sheet refresh
+                    sheets_sync.sync_to_google_sheets()
                     continue
 
                 # Route C: Public Super Chat Celebration
@@ -135,12 +133,18 @@ def run_bot():
                     donation_amount = details.get("amount", 0.0)
                     print(f"🌟 SUPER CHAT: {username} donated ${donation_amount}")
                     sender.send_message(f"🌟 THANK YOU {username}! Your ${donation_amount:.2f} donation earned you a massive points bonus! 👑")
+                    
+                    # Force an immediate Google Sheet refresh
+                    sheets_sync.sync_to_google_sheets()
                     continue
 
                 # Route D: Public Membership Tier Upgrade Celebration
                 elif message_type == "membershipGIFTEvent":
                     print(f"👑 MEMBER EVENT: {username} supported the channel!")
                     sender.send_message(f"👑 HYPE! {username} just supported the channel and received a massive point drop! 🚀")
+                    
+                    # Force an immediate Google Sheet refresh
+                    sheets_sync.sync_to_google_sheets()
                     continue
 
                 # Format a clean console log for you to read while streaming

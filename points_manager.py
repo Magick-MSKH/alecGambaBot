@@ -1,5 +1,6 @@
 import time
 import database
+import sheets_sync
 
 # Config constants
 POINTS_PER_CHAT = 10
@@ -54,11 +55,13 @@ def process_incoming_message(username, message_text, message_type, details=None,
         bonus = int(donation_amount * POINTS_SUPER_CHAT_MULTIPLIER)
         database.add_points(username, bonus)
         print(f"🌟 SUPER CHAT! {username} donated ${donation_amount} and got {bonus} points!")
+        sheets_sync.sync_to_google_sheets()
 
     # 3. Handle Membership Gifts / New Members
-    elif message_type == "membershipGIFTEvent" or message_type == "new SponsorEvent":
+    elif message_type == "membershipGIFTEvent" or message_type == "newSponsorEvent":
         database.add_points(username, POINTS_MEMBER_GIFT)
         print(f"👑 MEMBER EVENT! {username} supported the channel and earned bonus points!")
+        sheets_sync.sync_to_google_sheets()
 
     # 4. Handle Member Milestone Events (Dynamic)
     if message_type == "memberMilestoneChatEvent":
@@ -75,6 +78,7 @@ def process_incoming_message(username, message_text, message_type, details=None,
         # Add points
         database.add_points(username, dynamic_payout)
         print(f"🏆 MILESTONE TIER: {username} cashed in Month {months} card for {dynamic_payout} points!")
+        sheets_sync.sync_to_google_sheets()
     
 def DistributePassivePoints():
     """ Call this function on a timer loop (Example: Once every 5 min).

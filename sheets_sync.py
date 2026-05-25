@@ -34,8 +34,6 @@ def sync_to_google_sheets():
             print("📊 Data tab cleared and initialized for a clean slate!")
             return
 
-
-
         for index, (username, points) in enumerate(rows, 1):
             # Fetch stats per row to populate columns D:G
             stats = database.get_player_stats(username)

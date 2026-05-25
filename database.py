@@ -47,7 +47,7 @@ def init_db():
     conn.close()
 
 def get_balance(username):
-    """ Gets a user's current balance. Registers them with 1000 points if new """
+    """ Gets a user's current balance. Registers them with full stat tracking columns if new """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -55,8 +55,10 @@ def get_balance(username):
     row = cursor.fetchone()
 
     if row is None:
-        # User doesn't exist, register them
-        cursor.execute("INSERT INTO users (username, points) VALUES (?, ?)", (username, 1000))
+        cursor.execute('''
+            INSERT INTO users (username, points, bets_placed, bets_won, bets_lost, highest_peak)
+            VALUES (?, 1000, 0, 0, 0, 1000)
+        ''', (username,))
         conn.commit()
         balance = 1000
     else:
@@ -227,10 +229,16 @@ def get_player_stats(username):
     """ Fetches full stat card details for a sepcific viewer """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+
     cursor.execute("SELECT points, bets_placed, bets_won, bets_lost, highest_peak FROM users WHERE username = ?", (username,))
     row = cursor.fetchone()
-    conn.commit()
     conn.close()
+
+    if row is None:
+        get_balance(username)
+        return (1000, 0, 0, 0, 1000)
+
+    return row
 
 def get_all_time_peak_record():
     """ Finds the absolute highest points record ever held in the database and who achieved it """

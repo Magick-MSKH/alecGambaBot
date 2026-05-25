@@ -1,5 +1,6 @@
 import time
 import database
+import sheets_sync
 
 # Ensure your actual YouTube channel ID or username strings are in here
 ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCkYwhjg79txij8wDA-Jiv5Q"] # @magicmskh, @barelyalec, @notalecprobably, @larrryft
@@ -49,7 +50,7 @@ def process_admin_command(sender_id, sender_name, message_text):
         IS_BETTING_OPEN = True
         IS_BETTING_LOCKED = False  # Reset lock for the new round
         
-        return f"🎰 BETTING OPENED! 🎰\n❓ Question: {CURRENT_QUESTION}\n📋 Valid Options: {', '.join(VALID_OPTIONS)}\n👉 Type !gamba [amount] [option] to enter! (Hurry before it locks!)"
+        return f"🎰 BETTING OPENED! 🎰 | ❓ Question: {CURRENT_QUESTION} | 📋 Valid Options: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount] [option] to enter!"
 
     # ==========================================
     # COMMAND 2: !gamba_lock (NEW MANUAL LOCK)
@@ -112,7 +113,7 @@ def process_admin_command(sender_id, sender_name, message_text):
             
         target_username = parts[1]
         try:
-            amount = int(parts)
+            amount = int(parts[2])
             database.add_points(target_username, amount)
             new_balance = database.get_balance(target_username)
             return f"🎁 Awarded {amount} points to {target_username}! New balance: {new_balance}"
@@ -137,7 +138,7 @@ def process_admin_command(sender_id, sender_name, message_text):
             conn.commit()
             conn.close()
         
-            return f"🔄 Reset points for {target_username} back to 1000."
+            return f"🔄 Reset points for {target_username}."
 
         except Exception as e:
             return f"❌ Reset error: {str(e)}"
