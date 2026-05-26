@@ -66,12 +66,19 @@ def run_bot():
                 sheets_sync.sync_to_google_sheets()
                 last_passive_tick = current_time
 
-            for c in chat.get().sync_items():
-                # Read structural tags from the advanced API object layout
-                author = c.get("author", {})
-                username = author.get("name", "")
+            data = chat.get()
+            if not data or 'items' not in data:
+                time.sleep(1)
+                continue
+
+            for c in data['items']:
+                
+                # YouTube API layout mappings:
+                snippet = c.get("snippet", {})
+                author = c.get("authorDetails", {})
+                username = author.get("displayName", "")
                 channel_id = author.get("channelId", "")
-                message_text = c.get("message", "")
+                message_text = snippet.get("displayMessage", "")
                 
                 # BAN MAGICKBOT0!!!: Pull raw channel flags from metadata to detect
                 if "magickbot0" in username.lower():
@@ -135,7 +142,8 @@ def run_bot():
                     continue
 
                 # Format a clean console log to read while streaming
-                print(f"💬 [{c.datetime}] {username}: {message_text}")
+                published_at = snippet.get("publishedAt", "LIVE")
+                print(f"🖲️ [{published_at}] {username}: {message_text}")
 
                 ###########################################
                 # COMMAND HANDLER #
