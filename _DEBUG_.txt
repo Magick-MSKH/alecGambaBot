@@ -1,4 +1,0 @@
-⚠️ Google Sheets Sync Failed: cannot unpack non-iterable NoneType object
-*should be fixed
-
-Add: !gamba_lock to lock bets manually and clear 5min timer
