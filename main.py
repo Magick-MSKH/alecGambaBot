@@ -6,13 +6,16 @@ import admin_manager
 import points_manager
 import command_manager
 import terminal_controller
+from pytchat import CompatibleProcessor     # NEW!: Advanced metadata event parser
 from chat_sender import YouTubeChatSender
 
 def run_bot():
     # Init SQLite tables
     database.init_db()
 
+    ###################################################
     # 0a. Prompt for Video ID dynamically via stdin
+    ###################################################
     print("=" * 30)
     VIDEO_ID = input("👉 Enter YouTube Stream Video ID: ").strip()
     print("=" * 30)
@@ -21,84 +24,85 @@ def run_bot():
         print("❌ Error: Video ID cannot be empty.")
         return
 
-    # 0b. Generate clean standalone live chat pop-out URL
     STREAM_URL = f"https://youtube.com/live_chat?v={VIDEO_ID}"
 
+    ###################################################
     # 1. Init chat writer
+    ###################################################
+
     sender = YouTubeChatSender(STREAM_URL)
     sender.start()
 
-    # Give the user a moment to verify their login state in the browser window
     input("\n👉 Press ENTER here in the VS Code terminal ONCE the browser has loaded your stream chat...")
 
+    ###################################################
     # 2. Init chat scraper
-    print("🔍 Connecting to YouTube Live Chat reader...")
+    ###################################################
+
+    print("🔍 Connecting to YouTube Live Chat reader via CompatLayer")
     try:
-        chat = pytchat.create(video_id=VIDEO_ID)
+        # CompatLayer: pass advanced processing flags here to reveal Superchats and Milestones
+        chat = pytchat.create(video_id=VIDEO_ID, processor=CompatibleProcessor())
     except Exception as e:
         print(f"❌ Failed to connect to stream: {e}")
+        sender.stop()
         return
 
     print("🚀 Gamba Bot is running natively on Windows! Monitoring chat logs...")
     sender.send_message("🤖 Gamba Bot is online and listening for commands!")
 
+    ###################################################
     # Init silent keyboard controller
+    ###################################################
+
     terminal_controller.start_terminal_controller()
 
     last_passive_tick = time.time()
     while chat.is_alive():
         try:
-            current_time = time.time() # 1. Check if 5 min passed to award passive points
-            if current_time - last_passive_tick >= 300: # 300 secs = 5 mins
+            current_time = time.time() # 
+            if current_time - last_passive_tick >= 300:
                 points_manager.DistributePassivePoints()
-                sheets_sync.sync_to_google_sheets() # Run Google Sheets updater code after points shift
+                sheets_sync.sync_to_google_sheets()
                 last_passive_tick = current_time
 
             for c in chat.get().sync_items():
-                username = c.author.name
-                channel_id = c.author.channelId
-                message_text = getattr(c, "message", "") # Safety fallback if no text message exists
+                # Read structural tags from the advanced API object layout
+                author = c.get("author", {})
+                username = author.get("name", "")
+                channel_id = author.get("channelId", "")
+                message_text = c.get("message", "")
                 
-                if username == "@MagickBot0":
+                # BAN MAGICKBOT0!!!: Pull raw channel flags from metadata to detect
+                if "magickbot0" in username.lower():
                     continue
 
-                # 1. WATERTIED EVENT CLASSIFICATION
-                # Default to a regular chat message event
-                message_type = "textMessageEvent" 
+                ### Read Event Flags directly from CompatLayer
+                message_type = c.get("type", "textMessageEvent")
                 details = {}
 
-                # Check if it's a Member Milestone Chat
-                if hasattr(c, 'type') and c.type == "memberMilestoneChatEvent":
-                    message_type = "memberMilestoneChatEvent"
+                ### PARSE: Super Chat
+                if message_type == "superChatEvent":
+                    details["amount"] = float(c.get("amountValue", 0.0))
 
-                # Check if it's a Super Chat (Donation)
-                elif hasattr(c, 'type') and c.type == "superChatEvent":
-                    message_type = "superChatEvent"
-                    # Extract the currency amount from the superchat metadata
-                    try:
-                        details["amount"] = float(c.amountValue) 
-                    except Exception:
-                        details["amount"] = 0.0
+                ### PARSE: Milestone
+                elif message_type == "memberMilestoneChatEvent":
+                    details["months"] = int(c.get("memberMonth", 1))
 
-                # Check if it's a New Member or a Membership Gift Event
-                elif hasattr(c, 'type') and c.type in ["newSponsorEvent", "membershipGIFTEvent"]:
-                    message_type = "membershipGIFTEvent"
-
-                # 2. Process points silently behind the scenes
-                is_member = getattr(c.author, "isChatSponsor", False)
+                ### PARSE --Silent: Point Balances
+                is_member = author.get("isChatSponsor", False)
                 points_manager.process_incoming_message(
-                    username, 
-                    message_text, 
-                    message_type, 
-                    details=details, 
+                    username,
+                    message_text,
+                    message_type,
+                    details=details,
                     is_member=is_member
                 )
 
-                # 3. ROUTE THE ACTIONS BASED ON TYPE
-                # Route A: Standard text chat & user/admin commands
+                ### Re-route based on flags from CompatLayer
                 if message_type == "textMessageEvent":
                     print(f"💬 {username}: {message_text}")
-                    
+
                     bot_reply = command_manager.process_user_command(username, message_text)
                     if bot_reply:
                         sender.send_message(bot_reply)
@@ -109,70 +113,53 @@ def run_bot():
                         sender.send_message(admin_reply)
                         continue
 
-                # Route B: Public Milestone Shoutout
                 elif message_type == "memberMilestoneChatEvent":
-                    months = 1
-                    try:
-                        if hasattr(c, 'rawdata') and 'memberMilestoneChatDetails' in c.rawdata:
-                            months = c.rawdata['memberMilestoneChatDetails'].get('memberMonth', 1)
-                    except Exception:
-                        pass
-                    
+                    months = details.get("months", 1)
                     dynamic_payout = 1000 + (months * 250)
-                    sender.send_message(
-                        f"🏆 MILESTONE! {username} claimed their Month {months} member card "
-                        f"and scored a dynamic reward of 🎁 {dynamic_payout:,} points! 🎁"
-                    )
-
-                    # Force an immediate Google Sheet refresh
+                    print(f"🏆 MILESTONE TRACKED: {username} for Month {months}")
+                    sender.send_message(f"🏆 {username} claimed thier {months}-month member chat for {dynamic_payout:,} points! 🎁")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
-                # Route C: Public Super Chat Celebration
                 elif message_type == "superChatEvent":
                     donation_amount = details.get("amount", 0.0)
-                    print(f"🌟 SUPER CHAT: {username} donated ${donation_amount}")
-                    sender.send_message(f"🌟 THANK YOU {username}! Your ${donation_amount:.2f} donation earned you a massive points bonus! 👑")
-                    
-                    # Force an immediate Google Sheet refresh
+                    print(f"🌟 {username} donated {donation_amount}")
+                    sender.send_message(f"🌟 {username}'s Super Chat earned channel points!")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
-                # Route D: Public Membership Tier Upgrade Celebration
-                elif message_type == "membershipGIFTEvent":
-                    print(f"👑 MEMBER EVENT: {username} supported the channel!")
-                    sender.send_message(f"👑 HYPE! {username} just supported the channel and received a massive point drop! 🚀")
-                    
-                    # Force an immediate Google Sheet refresh
+                elif message_type in ["newSponsorEvent", "membershipGIFTEvent"]:
+                    print(f"👑 MEMBERSHIP EVENT: {username}")
+                    sender.send_message(f"👑 {username} earned bonus points for Membership!")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
-                # Format a clean console log for you to read while streaming
+                # Format a clean console log to read while streaming
                 print(f"💬 [{c.datetime}] {username}: {message_text}")
 
-                # 3. Handle User Commands (!balance, !gamba, )
+                ###########################################
+                # COMMAND HANDLER #
+                ###########################################
+
                 bot_reply = command_manager.process_user_command(username, message_text)
                 if bot_reply:
-                    sender.send_message(bot_reply) # Relay response to YouTube Chat
+                    sender.send_message(bot_reply)
                     print(f"🤖 BOT RESPONSE: {bot_reply}")
                     continue
 
                 # 4. Handle Admin Commands (!give, !gamba_open, )
                 admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
                 if admin_reply:
-                    sender.send_message(admin_reply) # Relay action to YouTube Chat
+                    sender.send_message(admin_reply)
                     print(f"👑 ADMIN ACTION: {admin_reply}")
                     continue
 
                 # 5. Handle Gamba betting execution
                 if message_text.startswith("!gamba"):
-                    # FIX: Force main.py to call the evaluation function from admin_manager!
-                    # This bridges the memory tracking loop across files instantly.
                     if not admin_manager.IS_BETTING_OPEN:
                         print(f"🎲 GAMBA CLOSED: {username} tried to bet, but no pool is open.")
                         continue
                         
-                    # NEW FLAG CHECK: Instantly reject entries if you manually locked it
                     if admin_manager.IS_BETTING_LOCKED:
                         print(f"🔒 GAMBA LOCKED: {username} tried to bet, but the pool is locked.")
                         continue
@@ -192,16 +179,16 @@ def run_bot():
                         except ValueError:
                             pass
 
-
-            # Sleep slightly to prevent CPU spinning, pytchat handles its own polling rates internally
             time.sleep(1)
 
         except KeyboardInterrupt:
             print("\nShutting down bot safely.")
             break
         except Exception as e:
-            print(f"⚠️ Loop encountered an error: {e}")
+            print(f"⚠️ Error in subroutine: {e}")
             time.sleep(5)
+    
+    sender.stop()
 
     print("🛑 Stream connection lost or closed.")
 

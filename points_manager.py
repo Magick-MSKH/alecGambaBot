@@ -14,11 +14,9 @@ active_viewers = {}
 chat_cooldowns = {}
 
 def process_incoming_message(username, message_text, message_type, details=None, is_member=False):
-    """ Processes a single chat event. Call this every time the bot reads a message 
-        Members receive a 1.2x multiplier!
-    """
+    """ Process points behind the scenes """
 
-    if username == "@MagickBot0":
+    if "magickbot0" in username.lower():
         return
     
     current_time = time.time()
