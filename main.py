@@ -71,30 +71,42 @@ def run_bot():
                 time.sleep(1)
                 continue
 
+            #########################################
+            ####### MAIN GAMBA BOT SUBROUTINE #######
+            #########################################
             for c in data['items']:
                 
                 # YouTube API layout mappings:
                 snippet = c.get("snippet", {})
                 author = c.get("authorDetails", {})
+
                 username = author.get("displayName", "")
                 channel_id = author.get("channelId", "")
                 message_text = snippet.get("displayMessage", "")
                 
-                # BAN MAGICKBOT0!!!: Pull raw channel flags from metadata to detect
                 if "magickbot0" in username.lower():
                     continue
 
                 ### Read Event Flags directly from CompatLayer
-                message_type = c.get("type", "textMessageEvent")
+                # FIX: Inspect interior Event Type resolution
+                message_type = "textMessageEvent"
                 details = {}
 
                 ### PARSE: Super Chat
-                if message_type == "superChatEvent":
-                    details["amount"] = float(c.get("amountValue", 0.0))
+                # FIX: Look inside snippet data wrapper for specific event flags
+                if "superChatDetails" in snippet:
+                    message_type = "superChatEvent"
+                    sc_info = snippet.get("superChatDetails", {})
+                    details["amount"] = float(sc_info.get("amountMicros", 0)) / 1000000.0
 
                 ### PARSE: Milestone
-                elif message_type == "memberMilestoneChatEvent":
-                    details["months"] = int(c.get("memberMonth", 1))
+                elif "memberMilestoneChatDetails" in snippet:
+                    message_type = "memberMilestoneChatEvent"
+                    milestone_info = snippet.get("memberMilestoneChatDetails", {})
+                    details["months"] = int(milestone_info.get("memberMonth", 1))
+
+                elif "newSponsorEvent" in c.get("type", "") or "membershipGIFTEvent" in c.get("type", ""):
+                    message_type = "membershipGIFTEvent"
 
                 ### PARSE --Silent: Point Balances
                 is_member = author.get("isChatSponsor", False)
@@ -108,13 +120,14 @@ def run_bot():
 
                 ### Re-route based on flags from CompatLayer
                 if message_type == "textMessageEvent":
-                    print(f"💬 {username}: {message_text}")
+                    published_at = snippet.get("publishedAt", "LIVE")
+                    print(f"💬 [{published_at}] {username}: {message_text}")
 
                     bot_reply = command_manager.process_user_command(username, message_text)
                     if bot_reply:
                         sender.send_message(bot_reply)
                         continue
-
+                    
                     admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
                     if admin_reply:
                         sender.send_message(admin_reply)
@@ -123,20 +136,26 @@ def run_bot():
                 elif message_type == "memberMilestoneChatEvent":
                     months = details.get("months", 1)
                     dynamic_payout = 1000 + (months * 250)
-                    print(f"🏆 MILESTONE TRACKED: {username} for Month {months}")
+
+                    ### Terminal print confirmation
+                    print(f"🖲️ [MILESTONE TRACKED] {username} for Month {months}!")
+
                     sender.send_message(f"🏆 {username} claimed thier {months}-month member chat for {dynamic_payout:,} points! 🎁")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
                 elif message_type == "superChatEvent":
                     donation_amount = details.get("amount", 0.0)
-                    print(f"🌟 {username} donated {donation_amount}")
+
+                    ### Terminal print confirmation
+                    print(f"🖲️ [SUPER CHAT DETECTED] {username} donated {donation_amount:.2f}")
+
                     sender.send_message(f"🌟 {username}'s Super Chat earned channel points!")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
-                elif message_type in ["newSponsorEvent", "membershipGIFTEvent"]:
-                    print(f"👑 MEMBERSHIP EVENT: {username}")
+                elif message_type == "membershipGIFTEvent":
+                    print(f"🖲️ [MEMBERSHIP DETECTED] {username} supported the channel")
                     sender.send_message(f"👑 {username} earned bonus points for Membership!")
                     sheets_sync.sync_to_google_sheets()
                     continue

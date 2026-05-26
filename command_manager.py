@@ -41,6 +41,17 @@ def process_user_command(username, message_text):
         except Exception as e:
             return f"❌ Error loading leaderboard: {str(e)}"
 
+    elif command in ["!current_gamba", "!current_bet", "!gamba_info", "!pool"]:
+        try:
+            ## I think this import needs to be LOCAL to this script, as to prevent out-of-scope errors (maybe) (idk)
+            import admin_manager
+
+            # Fetch structured text from def get_current_pool_info() in admin_manager
+            pool_info = admin_manager.get_current_pool_info()
+            return pool_info
+        except Exception as e:
+            return f"❌ Error fetching pool data: {str(e)}"
+
     ########################################
     # 3. Handle Statistics commands
     ########################################

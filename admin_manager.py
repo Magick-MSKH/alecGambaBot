@@ -171,3 +171,13 @@ def process_admin_command(sender_id, sender_name, message_text):
             return f"❌ Database error: {str(e)}"
 
     return None
+
+def get_current_pool_info():
+    """ Returns a formatted string of the active betting pool for public checks """
+    if not IS_BETTING_OPEN:
+        return "🎲 No active betting pool is open right now."
+
+    # Checks to see if the pool has been locked manually by a mod/admin
+    status_label = "🔒 LOCKED!" if IS_BETTING_LOCKED else "🔓 OPEN!"
+
+    return (f"🎰 ACTIVE POOL [{status_label}]: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount] [option] to play!")
