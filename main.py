@@ -12,6 +12,8 @@ from chat_sender import YouTubeChatSender
 def run_bot():
     # Init SQLite tables
     database.init_db()
+    database.clear_daily_claims()
+    print("🖲️ Reset daily claims table for fresh session.")
 
     ###################################################
     # 0a. Prompt for Video ID dynamically via stdin

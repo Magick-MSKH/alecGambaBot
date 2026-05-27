@@ -42,6 +42,13 @@ def init_db():
                 FOREIGN KEY(username) REFERENCES users(username)
             )
         ''')
+
+    # Create CLAIMS table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_claims (
+            username TEXT PRIMARY KEY
+        )
+    ''')
     
     conn.commit()
     conn.close()
@@ -248,3 +255,28 @@ def get_all_time_peak_record():
     row = cursor.fetchone()
     conn.close()
     return row
+
+def check_daily_claimed(username):
+    """ Checks if user already claimed their daily points """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM daily_claims WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    conn.close()
+    return row is not None
+
+def record_daily_claim(username):
+    """ Log user's daily claim into session table """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO daily_claims (username) VALUES (?)", (username,))
+    conn.commit()
+    conn.close()
+
+def clear_daily_claims():
+    """ Wipe session table on bot start """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM daily_claims")
+    conn.commit()
+    conn.close()

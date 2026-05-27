@@ -78,5 +78,23 @@ def process_user_command(username, message_text):
     ########################################
     elif command in ["!help", "!commands"]:
         return "🤖 Available commands: !balance, !gamba [amount] [vote]"
+
+    ########################################
+    # 6. Handle Daily Points Command
+    ########################################
+    elif command in ["!daily", "!bonus", "!check_in"]:
+        DAILY_REWARD = 500
+        try:
+            if database.check_daily_claimed(username):
+                return f"⚠️ {username}, you have already claimed your bonus points for this stream."
+            
+            database.add_points(username, DAILY_REWARD)
+            database.record_daily_claim(username)
+
+            new_balance = database.get_balance(username)
+            return f"🎁 {username} claimed their bonus {DAILY_REWARD} points for this stream."
+
+        except Exception as e:
+            return f"❌ Error claiming daily points: {str(e)}"
     
     return None
