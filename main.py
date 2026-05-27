@@ -193,17 +193,31 @@ def run_bot():
 
                     parts = message_text.split()
                     if len(parts) >= 3:
-                        try:
-                            amount = int(parts[1])
-                            vote = parts[2].lower()
+                        amount = int(parts[1])
+                        vote = parts[2].lower()
                             
-                            # Validate choice against active variables
-                            if vote not in admin_manager.VALID_OPTIONS or amount <= 0:
+                        # Validate choice against active variables
+                        if vote not in admin_manager.VALID_OPTIONS or amount <= 0:
+                            continue
+
+                        try: # !gamba [amount] [vote_choice]
+                            if amount_str in ["all", "allin", "all-in", "max", "maxbet"]:
+                                amount = database.get_balance(username)
+                            else:
+                                amount = int(amount_str)
+                            
+                            if amount <= 0:
+                                print(f"🖲️ {username} tried to bet 0 or an invalid amount ({amount})")
                                 continue
 
                             success, gamba_msg = database.place_bet(username, amount, vote)
-                            print(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
+                            print(f"🖲️ GAMBA REGISTERED {username} -> {gamba_msg} 💎")
+
+                            if amount_str in ["all", "allin", "all-in", "max", "maxbet"] and success:
+                                sender.send_message(f"🔥 {username} just risked their life savings of {amount:,} on '{vote}'! 🔥")
+
                         except ValueError:
+                            print(f"🖲️ {username} entered an invalid amount string - must be int or positive balance")
                             pass
 
             time.sleep(1)

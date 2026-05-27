@@ -178,6 +178,6 @@ def get_current_pool_info():
         return "🎲 No active betting pool is open right now."
 
     # Checks to see if the pool has been locked manually by a mod/admin
-    status_label = "🔒 LOCKED!" if IS_BETTING_LOCKED else "🔓 OPEN!"
+    status_label = "🔒 LOCKED!" if IS_BETTING_LOCKED else "🟢 OPEN!"
 
-    return (f"🎰 ACTIVE POOL [{status_label}]: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount] [option] to play!")
+    return (f"🎰 ACTIVE POOL {status_label}: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount] [option] to play!")
