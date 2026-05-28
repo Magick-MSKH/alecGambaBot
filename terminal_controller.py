@@ -1,41 +1,65 @@
 import sys
-import threading
-import database
+import msvcrt
+import asyncio
 import admin_manager
 import sheets_sync
 
-def terminal_input_loop():
-    """ Continuously listens for keyboard inputs inside the TERMINAL window """
-    print("⌨️ Terminal Controller Active: You can type admin commands here anytime!")
-    print("👉 Available: !give [user] [amt] | !give_all [amt] | !gamba_open [opt1,opt2] [Q] | !gamba_win [opt] | !gamba_cancel")
+async def check_terminal_input():
+    """
+    Natively monitors the Windows VS Code terminal for admin commands.
+    Bypasses all asyncio ProactorPipe/WinError 6 handle bugs using msvcrt.
+    """
+    print("⌨️  Terminal Controller Active: ")
+    print("-" * 75)
+
+    input_buffer = ""
 
     while True:
         try:
-            # Read line from stdin (waits until ENTER is pressed)
-            line = sys.stdin.readline().strip()
-            if not line:
-                continue
-            
-            parts = line.split()
-            command = parts[0].lower()
+            # Check if a keyboard key has been pressed in the terminal window
+            if msvcrt.kbhit():
+                # 1. Read the character byte natively from the console
+                char_byte = msvcrt.getche()
+                
+                # FIX: Decode the text character instantly right here so 'char' ALWAYS has a value!
+                char = char_byte.decode(errors='ignore')
 
-            # Pass text to existing admin manager logic
-            # We user '00000' and 'ConsoleAdmin' to signify it came from this TERMINAL, not the Live Chat
-            reply = admin_manager.process_admin_command("00000", "ConsoleAdmin", line)
+                # 2. Handle Backspace key presses safely
+                if char_byte == b'\x08':
+                    if len(input_buffer) > 0:
+                        input_buffer = input_buffer[:-1]
+                        # Clean up the visual terminal display for backspaces on Windows
+                        sys.stdout.write(" \b")
+                        sys.stdout.flush()
+                    continue
 
-            if reply:
-                print(f"🖥️ [CONSOLE EXECUTE] {reply}")
+                # 3. Handle Enter key press (Submit the command string!)
+                elif char_byte == b'\r' or char_byte == b'\n':
+                    command_line = input_buffer.strip()
+                    input_buffer = "" # Reset the buffer instantly
+                    print("") # Move terminal display down to a fresh line
 
-                # Force immediate spreadsheet update after any console action is taken
-                sheets_sync.sync_to_google_sheets()
-            
-            else:
-                print("❌ Unknown console command or invalid formatting!")
+                    if not command_line:
+                        continue
+
+                    print(f"🖥️  [CONSOLE EXECUTE] Processing: {command_line}")
+                    
+                    # Route the command to your existing admin manager logic
+                    reply = admin_manager.process_admin_command("00000", "ConsoleAdmin", command_line)
+                    
+                    if reply:
+                        print(f"🖥️  [CONSOLE RESPONSE] {reply}")
+                        sheets_sync.sync_to_google_sheets()
+                    else:
+                        print("❌ Console Warning: Command ignored or invalid formatting layout.")
+                
+                # 4. Handle regular text characters
+                else:
+                    input_buffer += char
 
         except Exception as e:
-            print(f"⚠️ Console Error: {e}!")
+            print(f"\n⚠️ Console key error: {e}")
+            input_buffer = ""
 
-def start_terminal_controller():
-    """ Init Terminal Listener on a backgroud thread so it doesn't interrupt the main loop """
-    console_thread = threading.Thread(target=terminal_input_loop, daemon=True)
-    console_thread.start()
+        # Yield control for a microsecond to keep the CPU usage at 0%
+        await asyncio.sleep(0.05)

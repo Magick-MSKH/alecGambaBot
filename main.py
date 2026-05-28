@@ -1,4 +1,5 @@
 import time
+import asyncio
 import pytchat
 import database
 import sheets_sync
@@ -6,14 +7,14 @@ import admin_manager
 import points_manager
 import command_manager
 import terminal_controller
-from pytchat import CompatibleProcessor     # NEW!: Advanced metadata event parser
+from pytchat import CompatibleProcessor
 from chat_sender import YouTubeChatSender
 
-def run_bot():
+async def run_bot_async():
     # Init SQLite tables
     database.init_db()
     database.clear_daily_claims()
-    print("🖲️ Reset daily claims table for fresh session.")
+    print("🧹 Reset daily claims table for fresh session.")
 
     ###################################################
     # 0a. Prompt for Video ID dynamically via stdin
@@ -33,7 +34,7 @@ def run_bot():
     ###################################################
 
     sender = YouTubeChatSender(STREAM_URL)
-    sender.start()
+    await sender.start()
 
     input("\n👉 Press ENTER here in the VS Code terminal ONCE the browser has loaded your stream chat...")
 
@@ -43,23 +44,18 @@ def run_bot():
 
     print("🔍 Connecting to YouTube Live Chat reader via CompatLayer")
     try:
-        # CompatLayer: pass advanced processing flags here to reveal Superchats and Milestones
         chat = pytchat.create(video_id=VIDEO_ID, processor=CompatibleProcessor())
     except Exception as e:
         print(f"❌ Failed to connect to stream: {e}")
-        sender.stop()
+        await sender.stop()# AWAIT_ADD
         return
 
+    asyncio.create_task(terminal_controller.check_terminal_input())
     print("🚀 Gamba Bot is running natively on Windows! Monitoring chat logs...")
-    sender.send_message("🤖 Gamba Bot is online and listening for commands!")
-
-    ###################################################
-    # Init silent keyboard controller
-    ###################################################
-
-    terminal_controller.start_terminal_controller()
+    await sender.send_message("🤖 Gamba Bot is online and listening for commands!")
 
     last_passive_tick = time.time()
+
     while chat.is_alive():
         try:
             current_time = time.time() # 
@@ -70,7 +66,7 @@ def run_bot():
 
             data = chat.get()
             if not data or 'items' not in data:
-                time.sleep(1)
+                await asyncio.sleep(1)
                 continue
 
             #########################################
@@ -127,12 +123,12 @@ def run_bot():
 
                     bot_reply = command_manager.process_user_command(username, message_text)
                     if bot_reply:
-                        sender.send_message(bot_reply)
+                        await sender.send_message(bot_reply)# AWAIT_ADD
                         continue
                     
                     admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
                     if admin_reply:
-                        sender.send_message(admin_reply)
+                        await sender.send_message(admin_reply)# AWAIT_ADD
                         continue
 
                 elif message_type == "memberMilestoneChatEvent":
@@ -142,7 +138,7 @@ def run_bot():
                     ### Terminal print confirmation
                     print(f"🖲️ [MILESTONE TRACKED] {username} for Month {months}!")
 
-                    sender.send_message(f"🏆 {username} claimed thier {months}-month member chat for {dynamic_payout:,} points! 🎁")
+                    await sender.send_message(f"🏆 {username} claimed thier {months}-month member chat for {dynamic_payout:,} points! 🎁")# AWAIT_ADD
                     sheets_sync.sync_to_google_sheets()
                     continue
 
@@ -152,13 +148,13 @@ def run_bot():
                     ### Terminal print confirmation
                     print(f"🖲️ [SUPER CHAT DETECTED] {username} donated {donation_amount:.2f}")
 
-                    sender.send_message(f"🌟 {username}'s Super Chat earned channel points!")
+                    await sender.send_message(f"🌟 {username}'s Super Chat earned channel points!")# AWAIT_ADD
                     sheets_sync.sync_to_google_sheets()
                     continue
 
                 elif message_type == "membershipGIFTEvent":
                     print(f"🖲️ [MEMBERSHIP DETECTED] {username} supported the channel")
-                    sender.send_message(f"👑 {username} earned bonus points for Membership!")
+                    await sender.send_message(f"👑 {username} earned bonus points for Membership!")# AWAIT_ADD
                     sheets_sync.sync_to_google_sheets()
                     continue
 
@@ -172,14 +168,14 @@ def run_bot():
 
                 bot_reply = command_manager.process_user_command(username, message_text)
                 if bot_reply:
-                    sender.send_message(bot_reply)
+                    await sender.send_message(bot_reply)# AWAIT_ADD
                     print(f"🤖 BOT RESPONSE: {bot_reply}")
                     continue
 
                 # 4. Handle Admin Commands (!give, !gamba_open, )
                 admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
                 if admin_reply:
-                    sender.send_message(admin_reply)
+                    await sender.send_message(admin_reply)# AWAIT_ADD
                     print(f"👑 ADMIN ACTION: {admin_reply}")
                     continue
 
@@ -216,13 +212,13 @@ def run_bot():
                             print(f"🖲️ GAMBA REGISTERED {username} -> {gamba_msg} 💎")
 
                             if amount_str in ["all", "allin", "all-in", "max", "maxbet"] and success:
-                                sender.send_message(f"🔥 {username} just risked their life savings of {amount:,} on '{vote}'! 🔥")
+                                await sender.send_message(f"🔥 {username} just risked their life savings of {amount:,} on '{vote}'! 🔥")# AWAIT_ADD
 
                         except ValueError:
                             print(f"🖲️ {username} entered an invalid amount string - must be int or positive balance")
                             pass
 
-            time.sleep(1)
+            await asyncio.sleep(1)
 
         except KeyboardInterrupt:
             print("\nShutting down bot safely.")
@@ -231,9 +227,14 @@ def run_bot():
             print(f"⚠️ Error in subroutine: {e}")
             time.sleep(5)
     
-    sender.stop()
+    await sender.stop()
 
-    print("🛑 Stream connection lost or closed.")
+def run_bot():
+    """Root execution gate to boot the asynchronous main function on Windows."""
+    try:
+        asyncio.run(run_bot_async())
+    except KeyboardInterrupt:
+        print("\n🛑 Shutting down...")
 
 if __name__ == "__main__":
     run_bot()
