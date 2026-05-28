@@ -50,6 +50,7 @@ async def run_bot_async():
         await sender.stop()# AWAIT_ADD
         return
 
+    terminal_controller.SENDER_OBJECT = sender ### NEW -- Links sender hook to terminal controller sub
     asyncio.create_task(terminal_controller.check_terminal_input())
     print("🚀 Gamba Bot is running natively on Windows! Monitoring chat logs...")
     await sender.send_message("🤖 Gamba Bot is online and listening for commands!")

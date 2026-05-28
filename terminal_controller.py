@@ -4,40 +4,39 @@ import asyncio
 import admin_manager
 import sheets_sync
 
+# NEW GLOBAL: This holds the reference to the active YouTube browser tab
+SENDER_OBJECT = None
+
 async def check_terminal_input():
     """
     Natively monitors the Windows VS Code terminal for admin commands.
-    Bypasses all asyncio ProactorPipe/WinError 6 handle bugs using msvcrt.
+    Bypasses asyncio handle blocks and relays messages to the live stream.
     """
-    print("⌨️  Terminal Controller Active: ")
+    global SENDER_OBJECT
+    
+    print("⌨️  Terminal Controller Active: You can type admin commands here anytime!")
+    print("👉 Available: !give [user] [amt] | !give_all [amt] | !gamba_open [opt1,opt2] [Q] | !gamba_lock | !gamba_win [opt] | !gamba_cancel")
     print("-" * 75)
 
     input_buffer = ""
 
     while True:
         try:
-            # Check if a keyboard key has been pressed in the terminal window
             if msvcrt.kbhit():
-                # 1. Read the character byte natively from the console
                 char_byte = msvcrt.getche()
-                
-                # FIX: Decode the text character instantly right here so 'char' ALWAYS has a value!
                 char = char_byte.decode(errors='ignore')
 
-                # 2. Handle Backspace key presses safely
                 if char_byte == b'\x08':
                     if len(input_buffer) > 0:
                         input_buffer = input_buffer[:-1]
-                        # Clean up the visual terminal display for backspaces on Windows
                         sys.stdout.write(" \b")
                         sys.stdout.flush()
                     continue
 
-                # 3. Handle Enter key press (Submit the command string!)
                 elif char_byte == b'\r' or char_byte == b'\n':
                     command_line = input_buffer.strip()
-                    input_buffer = "" # Reset the buffer instantly
-                    print("") # Move terminal display down to a fresh line
+                    input_buffer = "" 
+                    print("") 
 
                     if not command_line:
                         continue
@@ -49,11 +48,20 @@ async def check_terminal_input():
                     
                     if reply:
                         print(f"🖥️  [CONSOLE RESPONSE] {reply}")
+                        
+                        # NEW: If the command is an announcement that viewers NEED to see,
+                        # relay that text string straight to the YouTube live stream!
+                        # We skip plain '!give' command spam so chat stays bloat-free.
+                        if command_line.startswith("!gamba_") or command_line.startswith("!give_all"):
+                            if SENDER_OBJECT:
+                                # We 'await' the message delivery securely
+                                await SENDER_OBJECT.send_message(reply)
+                        
+                        # Instantly update the Google Sheet leaderboard
                         sheets_sync.sync_to_google_sheets()
                     else:
                         print("❌ Console Warning: Command ignored or invalid formatting layout.")
                 
-                # 4. Handle regular text characters
                 else:
                     input_buffer += char
 
@@ -61,5 +69,4 @@ async def check_terminal_input():
             print(f"\n⚠️ Console key error: {e}")
             input_buffer = ""
 
-        # Yield control for a microsecond to keep the CPU usage at 0%
         await asyncio.sleep(0.05)

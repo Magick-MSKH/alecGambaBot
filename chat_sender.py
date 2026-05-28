@@ -60,12 +60,12 @@ class YouTubeChatSender:
         print("🛑 Closing automated browser window context...")
         try:    
             if self.browser:
-                self.browser.close()
+                await self.browser.close()
         except Exception:
             pass # Supresses driver pipe disconnect complaints on sudden manual shutdown
         
         try:
             if self.playwright:
-                self.playwright.stop()
+                await self.playwright.stop()
         except Exception:
             pass # Same as above
