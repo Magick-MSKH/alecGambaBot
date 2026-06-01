@@ -66,14 +66,16 @@ async def run_bot_async():
                 last_passive_tick = current_time
 
             data = chat.get()
-            if not data or 'items' not in data:
-                await asyncio.sleep(1)
+            if data is None or not isinstance(data, dict) or 'items' not in data or data['items'] is None:
+                await asyncio.sleep(0.5)
                 continue
 
             #########################################
             ####### MAIN GAMBA BOT SUBROUTINE #######
             #########################################
             for c in data['items']:
+                if c is None:
+                    continue
                 
                 # YouTube API layout mappings:
                 snippet = c.get("snippet", {})
@@ -123,13 +125,14 @@ async def run_bot_async():
                     print(f"💬 [{published_at}] {username}: {message_text}")
 
                     bot_reply = command_manager.process_user_command(username, message_text)
-                    if bot_reply:
-                        await sender.send_message(bot_reply)# AWAIT_ADD
+
+                    if bot_reply and isinstance(bot_reply, str):
+                        await sender.send_message(bot_reply)
                         continue
                     
                     admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
-                    if admin_reply:
-                        await sender.send_message(admin_reply)# AWAIT_ADD
+                    if admin_reply and isinstance(admin_reply, str):
+                        await sender.send_message(admin_reply)
                         continue
 
                 elif message_type == "memberMilestoneChatEvent":
@@ -192,25 +195,28 @@ async def run_bot_async():
 
                     parts = message_text.split()
                     if len(parts) >= 3:
-                        amount = int(parts[1])
-                        vote = parts[2].lower()
-                            
-                        # Validate choice against active variables
-                        if vote not in admin_manager.VALID_OPTIONS or amount <= 0:
-                            continue
+                        try:
+                            vote = parts[2].lower()
+                                
+                            # Validate choice against active variables
+                            if vote not in admin_manager.VALID_OPTIONS: # or amount <= 0
+                                continue
 
-                        try: # !gamba [amount] [vote_choice]
+                            amount_str = parts[1].lower()
+
                             if amount_str in ["all", "allin", "all-in", "max", "maxbet"]:
                                 amount = database.get_balance(username)
                             else:
                                 amount = int(amount_str)
-                            
+                                
                             if amount <= 0:
                                 print(f"🖲️ {username} tried to bet 0 or an invalid amount ({amount})")
                                 continue
 
                             success, gamba_msg = database.place_bet(username, amount, vote)
-                            print(f"🖲️ GAMBA REGISTERED {username} -> {gamba_msg} 💎")
+                            if not gamba_msg:
+                                gamba_msg = "❌ Bet rejected by sytem settings or insufficient balance."
+                            print(f"💎 GAMBA REGISTERED {username} -> {gamba_msg}")
 
                             if amount_str in ["all", "allin", "all-in", "max", "maxbet"] and success:
                                 await sender.send_message(f"🔥 {username} just risked their life savings of {amount:,} on '{vote}'! 🔥")# AWAIT_ADD
@@ -239,3 +245,5 @@ def run_bot():
 
 if __name__ == "__main__":
     run_bot()
+
+    
