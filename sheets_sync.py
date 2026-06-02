@@ -2,29 +2,39 @@ import sqlite3
 import gspread
 import database
 
+# Cache GLOBAL ref for login session
+GC_SESSION = None
+
 def sync_to_google_sheets():
+    """ Read from local SQLite database, overwrite Data tab.
+        Handle token expirations and empty database states gracefully without crashing! :O
     """
-    Reads users from the local SQLite database and overwrites the 'Data' tab.
-    Leaves the 'Dashboard' tab completely untouched.
-    """
+
+    global GC_SESSION
+    
     try:
-        # 1. Connect to your Google Service Account
-        gc = gspread.service_account(filename="sheets_credentials.json")
+        # Check if we need to log in fresh OR refresh an expired token!!
+        if GC_SESSION is None:
+            GC_SESSION = gspread.service_account(filename="sheets_credentials.json")
+        else:
+            try:
+                # Force gspread to check if the 1h token needs a refresh
+                GC_SESSION.auth.refresh(gspread.auth.requests.Requests())
+            except Exception:
+                # If refreshing fails, log in from scratch to restore the link
+                GC_SESSION = gspread.service_account(filename="sheets_credentials.json")
         
-        # 2. Open the workbook by its name
-        sh = gc.open("Alec Stream Gamba Leaderboard")
-        
-        # FIX: Target the specific 'Data' worksheet tab explicitly
-        worksheet = sh.worksheet("Data")
-        
-        # 3. Pull data from SQLite, sorted from richest to poorest
+        # Open the workbook using our newly validated login session
+        sh = GC_SESSION.open("Alec Stream Gamba Leaderboard")
+        worksheet = sh.worksheet("Data") # Sets the Data tab/sheet as the entry point
+
+        # Pull data from SQLite
         conn = sqlite3.connect(database.DB_NAME)
         cursor = conn.cursor()
         cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
         rows = cursor.fetchall()
         conn.close()
-        
-        # 4. Format data with headers
+
         sheet_data = [["Rank", "Username", "Current Points", "Total Bets", "Wins", "Losses", "All-Time Peak"]]
 
         if not rows:
@@ -35,20 +45,20 @@ def sync_to_google_sheets():
             return
 
         for index, (username, points) in enumerate(rows, 1):
-            # Fetch stats per row to populate columns D:G
             stats = database.get_player_stats(username)
-
+            
             if stats is None:
                 placed, won, lost, peak = 0, 0, 0, points
             else:
                 _, placed, won, lost, peak = stats
-            
+                
             sheet_data.append([f"#{index}", username, points, placed, won, lost, peak])
             
-        # 5. Clear the old data and write the new list
         worksheet.clear()
         worksheet.update('A1', sheet_data)
         print("📊 Data tab successfully updated!")
-        
+    
     except Exception as e:
-        print(f"⚠️ Google Sheets Sync Failed: {e}")
+        # If the token fails or if GSpread locks up or drops, print a debug message
+        # Bypass the crash handler and restart the script
+        print(f"🐞 [DEBUG] GSpread Failure! Restart on next tic): {e}")

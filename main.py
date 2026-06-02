@@ -69,7 +69,7 @@ async def run_bot_async():
 
             if data is None:
                 print("🐞 [DEBUG] chat.get() returned None; 0001.")
-                await.asyncio.sleep(1)
+                await asyncio.sleep(1)
                 continue
             if data is None or not isinstance(data, dict) or 'items' not in data or data['items'] is None:
                 await asyncio.sleep(0.5)
