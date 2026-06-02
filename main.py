@@ -66,6 +66,11 @@ async def run_bot_async():
                 last_passive_tick = current_time
 
             data = chat.get()
+
+            if data is None:
+                print("🐞 [DEBUG] chat.get() returned None; 0001.")
+                await.asyncio.sleep(1)
+                continue
             if data is None or not isinstance(data, dict) or 'items' not in data or data['items'] is None:
                 await asyncio.sleep(0.5)
                 continue
@@ -74,37 +79,55 @@ async def run_bot_async():
             ####### MAIN GAMBA BOT SUBROUTINE #######
             #########################################
             for c in data['items']:
-                if c is None:
+                if c is None or not isinstance(c, dict):
+                    print(f"🐞 [DEBUG] Skipped an invalid message item dict object layout: {c}")
                     continue
                 
                 # YouTube API layout mappings:
                 snippet = c.get("snippet", {})
                 author = c.get("authorDetails", {})
+#               snippet = c.get("snippet")          ### <--- UNTESTED!!!
+#               author = c.get("authorDetails")     ### MIGHT BE NECESSARY TO USE THESE TWO LINES INSTEAD
 
+                if snippet is None or author is None:
+                    print(f"🐞 [DEBUG] Found empty interior object component layout!")
+                    print(f"📋 [DEBUG] Raw Component Dump: {c}")
+                    snippet = snippet if snippet is not None else {}
+                    author = author if author is not None else {}
+                
                 username = author.get("displayName", "")
                 channel_id = author.get("channelId", "")
                 message_text = snippet.get("displayMessage", "")
                 
+                if not username:
+                    print(f"🐞 [DEBUG] Username returned FALSE! {username}")
+                    continue
+
                 if "magickbot0" in username.lower():
                     continue
 
-                ### Read Event Flags directly from CompatLayer
-                # FIX: Inspect interior Event Type resolution
+
+                ########################################################
+                ###   Dynamic Event Type Resolution (Checking keys)  ###
+                ########################################################
                 message_type = "textMessageEvent"
                 details = {}
 
-                ### PARSE: Super Chat
-                # FIX: Look inside snippet data wrapper for specific event flags
                 if "superChatDetails" in snippet:
                     message_type = "superChatEvent"
-                    sc_info = snippet.get("superChatDetails", {})
-                    details["amount"] = float(sc_info.get("amountMicros", 0)) / 1000000.0
+                    sc_info = snippet.get("superChatDetails")
+                    if isinstance(sc_info, dict):
+                        details["amount"] = float(sc_info.get("amountMicros", 0)) / 1000000.0
+                    else:
+                        details["amount"] = 0.0
 
-                ### PARSE: Milestone
                 elif "memberMilestoneChatDetails" in snippet:
                     message_type = "memberMilestoneChatEvent"
-                    milestone_info = snippet.get("memberMilestoneChatDetails", {})
-                    details["months"] = int(milestone_info.get("memberMonth", 1))
+                    milestone_info = snippet.get("memberMilestoneChatDetails")
+                    if isinstance(milestone_info, dict):
+                        details["months"] = int(milestone_info.get("memberMonth", 1))
+                    else:
+                        details["months"] = 1
 
                 elif "newSponsorEvent" in c.get("type", "") or "membershipGIFTEvent" in c.get("type", ""):
                     message_type = "membershipGIFTEvent"
@@ -141,6 +164,7 @@ async def run_bot_async():
 
                     ### Terminal print confirmation
                     print(f"🖲️ [MILESTONE TRACKED] {username} for Month {months}!")
+                    database.add_points(username, dynamic_payout)
 
                     await sender.send_message(f"🏆 {username} claimed thier {months}-month member chat for {dynamic_payout:,} points! 🎁")# AWAIT_ADD
                     sheets_sync.sync_to_google_sheets()
@@ -148,8 +172,6 @@ async def run_bot_async():
 
                 elif message_type == "superChatEvent":
                     donation_amount = details.get("amount", 0.0)
-
-                    ### Terminal print confirmation
                     print(f"🖲️ [SUPER CHAT DETECTED] {username} donated {donation_amount:.2f}")
 
                     await sender.send_message(f"🌟 {username}'s Super Chat earned channel points!")# AWAIT_ADD
@@ -157,7 +179,11 @@ async def run_bot_async():
                     continue
 
                 elif message_type == "membershipGIFTEvent":
+                    MEMBERSHIP_GIFT = 1500
+
                     print(f"🖲️ [MEMBERSHIP DETECTED] {username} supported the channel")
+                    database.add_points(username, MEMBERSHIP_GIFT)
+
                     await sender.send_message(f"👑 {username} earned bonus points for Membership!")# AWAIT_ADD
                     sheets_sync.sync_to_google_sheets()
                     continue
