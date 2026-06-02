@@ -170,6 +170,16 @@ def process_admin_command(sender_id, sender_name, message_text):
             return "❌ Error: Amount must be an integer."
         except Exception as e:
             return f"❌ Database error: {str(e)}"
+    
+    # ==========================================
+    # COMMAND 7: Local console exit
+    # ==========================================
+
+    elif command == ["!quit", "!exit", "!shutdown"]:
+        if sender_name == "ConsoleAdmin":
+            import main
+            main.IS_BOT_RUNNING = False
+            return "🛑 SHUTTING DOWN: Closing local tasks and closing Chrome window context..."
 
     return None
 

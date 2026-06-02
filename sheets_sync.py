@@ -61,4 +61,4 @@ def sync_to_google_sheets():
     except Exception as e:
         # If the token fails or if GSpread locks up or drops, print a debug message
         # Bypass the crash handler and restart the script
-        print(f"🐞 [DEBUG] GSpread Failure! Restart on next tic): {e}")
+        print(f"🐞 [DEBUG] GSpread Failure! Restart on next tic: {e}")
