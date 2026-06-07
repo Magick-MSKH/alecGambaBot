@@ -41,9 +41,13 @@ async def check_terminal_input():
                     if not command_line:
                         continue
 
+                    if command_line.lower() in ["!quit", "!exit", "!shutdown"]:
+                        print("🛑 SHUTTING DOWN ENGINE: Closing local tasks and closing Chrome window context...")
+                        import main
+                        main.IS_BOT_RUNNING = False
+                        sys.exit(0)
+
                     print(f"🖥️  [CONSOLE EXECUTE] Processing: {command_line}")
-                    
-                    # Route the command to your existing admin manager logic
                     reply = admin_manager.process_admin_command("00000", "ConsoleAdmin", command_line)
                     
                     if reply:

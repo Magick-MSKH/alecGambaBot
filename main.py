@@ -1,4 +1,5 @@
 import time
+import httpx
 import asyncio
 import pytchat
 import database
@@ -28,7 +29,7 @@ async def run_bot_async():
     # 0a. Prompt for Video ID dynamically via stdin
     ###################################################
     print("=" * 30)
-    VIDEO_ID = input("👉 Enter YouTube Stream Video ID: ").strip()
+    VIDEO_ID = input("👉 Enter YouTube Stream ID: ").strip()
     print("=" * 30)
 
     if not VIDEO_ID:
@@ -37,279 +38,136 @@ async def run_bot_async():
 
     STREAM_URL = f"https://youtube.com/live_chat?v={VIDEO_ID}"
 
-    ###################################################
-    # 1. Init chat writer
-    ###################################################
-
     sender = YouTubeChatSender(STREAM_URL)
     await sender.start()
 
     input("\n👉 Press ENTER when browser has loaded...")
+    print("⏳ Settling secure authentication parameters...")
+    await asyncio.sleep(3)
 
-    ###################################################
-    # 2. Init chat scraper
-    ###################################################
+    browser_cookies = await sender.get_formatted_cookies()
 
-    print("🔍 Connecting to YouTube Live Chat reader via CompatLayer")
-    try:
-        chat = pytchat.create(video_id=VIDEO_ID, processor=CompatibleProcessor())
-    except Exception as e:
-        print(f"❌ Failed to connect to stream: {e}")
-        await sender.stop()# AWAIT_ADD
-        return
-
-    terminal_controller.SENDER_OBJECT = sender ### NEW -- Links sender hook to terminal controller sub
+    terminal_controller.SENDER_OBJECT = sender
     asyncio.create_task(terminal_controller.check_terminal_input())
+
     print("🚀 Gamba Bot is running natively on Windows! Monitoring chat logs...")
     await sender.send_message("🤖 Gamba Bot is online and listening for commands!")
 
     last_passive_tick = time.time()
-
     global IS_BOT_RUNNING
     IS_BOT_RUNNING = True
 
-    ##############################
-    ### MASTER CONNECTION LOOP ###
-    ##############################
+    # --- MASTER BROWSER STREAM ENGINE LOOP ---
+    # Completely immune to 1-hour token expirations and Members-Only blocks!
     while IS_BOT_RUNNING:
-        print("🔍 Initializing YT Live Chat connection token...")
         try:
-            chat = pytchat.create(video_id=VIDEO_ID, processor=CompatibleProcessor())
-            print("🛜 Connection Established.")
-        except Exception as e:
-            print(f"❌ Failed to connect reader: {e}. Retrying in 10 seconds...")
-            await asyncio.sleep(10)
-            continue
+            current_time = time.time()
+            
+            # 5-Minute Passive updates
+            if current_time - last_passive_tick >= 300:
+                points_manager.DistributePassivePoints()
+                sheets_sync.sync_to_google_sheets()
+                last_passive_tick = current_time
 
-        while chat.is_alive() and IS_BOT_RUNNING:
-            try:
-                current_time = time.time()
+            # Ask our authenticated Playwright Chrome tab for new messages visible on screen
+            items = await sender.get_new_messages()
 
-                # 5-Minute passive payout and gspread sync
-                if current_time - last_passive_tick >= 300:
-                    points_manager.DistributePassivePoints()
-                    sheets_sync.sync_to_google_sheets()
+            for c in items:
+                username = c["username"]
+                message_text = c["message_text"]
+                message_type = c["message_type"]
+                details = c["details"]
+                is_member = c["is_member"]
+                
+                if "magickbot0" in username.lower():
+                    continue
 
-                    # Playwright connection verification ping
-                    if sender and sender.page:
-                        try:
-                            await sender.page.title()
-                        except Exception:
-                            try:
-                                await sender.page.goto(STREAM_URL)
-                            except Exception:
-                                    pass
-                    last_passive_tick = current_time
+                # Process database point entries silently behind the scenes
+                points_manager.process_incoming_message(
+                    username, message_text, message_type, details=details, is_member=is_member
+                )
 
-                data = chat.get()
-
-                if data is None or not isinstance(data, dict) or 'items' not in data or data['items'] is None:
-                        # Instead of crashing, break this inner loop so the parent container 
-                        # can instantly request a brand new chat token from YouTube!
-                        print("🔄 [CONNECTION REFRESH] YouTube token expired or recycled. Re-authenticating...")
-                        break
-
-                #########################################
-                ####### MAIN GAMBA BOT SUBROUTINE #######
-                #########################################
-                for c in data['items']:
-                    if c is None or not isinstance(c, dict):
-                        print(f"🐞 [DEBUG] Skipped an invalid message item dict object layout: {c}")
-                        continue
+                # Route Outputs based on determined event attributes
+                if message_type == "textMessageEvent":
+                    print(f"💬 [LIVE_WINDOW] {username}: {message_text}")
                     
-                    # YouTube API layout mappings:
-                    snippet = c.get("snippet") ## ("snippet", {})
-                    author = c.get("authorDetails") ## ("authorDetails", {})
-
-                    if snippet is None or author is None:
-                        print(f"🐞 [DEBUG] Found empty interior object component layout!")
-                        print(f"📋 [DEBUG] Raw Component Dump: {c}")
-                        snippet = snippet if snippet is not None else {}
-                        author = author if author is not None else {}
-                    
-                    username = author.get("displayName", "")
-                    channel_id = author.get("channelId", "")
-                    message_text = snippet.get("displayMessage", "")
-                    
-                    if not username:
-                        print(f"🐞 [DEBUG] Username returned FALSE! {username}")
-                        continue
-
-                    if "magickbot0" in username.lower():
-                        continue
-
-
-                    ########################################################
-                    ###   Dynamic Event Type Resolution (Checking keys)  ###
-                    ########################################################
-                    message_type = "textMessageEvent"
-                    details = {}
-
-                    raw_type = c.get("type") if isinstance(c, dict) else ""
-                    if raw_type is None:
-                        raw_type = ""
-
-                    if "superChatDetails" in snippet:
-                        message_type = "superChatEvent"
-                        sc_info = snippet.get("superChatDetails")
-                        if isinstance(sc_info, dict):
-                            details["amount"] = float(sc_info.get("amountMicros", 0)) / 1000000.0
-                        else:
-                            details["amount"] = 0.0
-
-                    elif "memberMilestoneChatDetails" in snippet:
-                        message_type = "memberMilestoneChatEvent"
-                        milestone_info = snippet.get("memberMilestoneChatDetails")
-                        if isinstance(milestone_info, dict):
-                            details["months"] = int(milestone_info.get("memberMonth", 1))
-                        else:
-                            details["months"] = 1
-
-                    elif "newSponsorEvent" in raw_type or "membershipGIFTEvent" in raw_type:
-                        message_type = "membershipGIFTEvent"
-
-                    ### PARSE --Silent: Point Balances
-                    is_member = author.get("isChatSponsor", False)
-                    points_manager.process_incoming_message(
-                        username,
-                        message_text,
-                        message_type,
-                        details=details,
-                        is_member=is_member
-                    )
-
-                    ### Re-route based on flags from CompatLayer
-                    if message_type == "textMessageEvent":
-                        published_at = snippet.get("publishedAt", "LIVE")
-                        print(f"💬 [{published_at}] {username}: {message_text}")
-
-                        bot_reply = command_manager.process_user_command(username, message_text)
-
-                        if bot_reply and isinstance(bot_reply, str):
-                            await sender.send_message(bot_reply)
-                            continue
-                        
-                        admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
-                        if admin_reply and isinstance(admin_reply, str):
-                            await sender.send_message(admin_reply)
-                            continue
-
-                    elif message_type == "memberMilestoneChatEvent":
-                        months = details.get("months", 1)
-                        dynamic_payout = 1000 + (months * 250)
-
-                        ### Terminal print confirmation
-                        print(f"🖲️ [MILESTONE TRACKED] {username} for Month {months}!")
-                        database.add_points(username, dynamic_payout)
-
-                        await sender.send_message(f"🏆 {username} claimed thier {months}-month member chat for {dynamic_payout:,} points! 🎁")# AWAIT_ADD
-                        sheets_sync.sync_to_google_sheets()
-                        continue
-
-                    elif message_type == "superChatEvent":
-                        donation_amount = details.get("amount", 0.0)
-                        print(f"🖲️ [SUPER CHAT DETECTED] {username} donated {donation_amount:.2f}")
-
-                        await sender.send_message(f"🌟 {username}'s Super Chat earned channel points!")# AWAIT_ADD
-                        sheets_sync.sync_to_google_sheets()
-                        continue
-
-                    elif message_type == "membershipGIFTEvent":
-                        MEMBERSHIP_GIFT = 1500
-
-                        print(f"🖲️ [MEMBERSHIP DETECTED] {username} supported the channel")
-                        database.add_points(username, MEMBERSHIP_GIFT)
-
-                        await sender.send_message(f"👑 {username} earned bonus points for Membership!")# AWAIT_ADD
-                        sheets_sync.sync_to_google_sheets()
-                        continue
-
-                    ### Console chat debugging moved to textMessageEvent sub ###
-                    # published_at = snippet.get("publishedAt", "LIVE")
-                    # print(f"🖲️ [{published_at}] {username}: {message_text}")
-
-                    ###########################################
-                    # COMMAND HANDLER #
-                    ###########################################
-
                     bot_reply = command_manager.process_user_command(username, message_text)
-                    if bot_reply:
-                        await sender.send_message(bot_reply)# AWAIT_ADD
-                        print(f"🤖 BOT RESPONSE: {bot_reply}")
+                    if bot_reply and isinstance(bot_reply, str):
+                        await sender.send_message(bot_reply)
                         continue
 
-                    # 4. Handle Admin Commands (!give, !gamba_open, )
-                    admin_reply = admin_manager.process_admin_command(channel_id, username, message_text)
-                    if admin_reply:
-                        await sender.send_message(admin_reply)# AWAIT_ADD
-                        print(f"👑 ADMIN ACTION: {admin_reply}")
+                    # FIX: Pass a blank string "" instead of 'channel_id'
+                    # The admin script will safely authorize based on the username handle!
+                    admin_reply = admin_manager.process_admin_command("", username, message_text)
+                    if admin_reply and isinstance(admin_reply, str):
+                        await sender.send_message(admin_reply)
                         continue
 
-                    # 5. Handle Gamba betting execution
-                    if message_text.startswith("!gamba"):
-                        if not admin_manager.IS_BETTING_OPEN:
-                            print(f"🎲 GAMBA CLOSED: {username} tried to bet, but no pool is open.")
-                            continue
+                elif message_type == "memberMilestoneChatEvent":
+                    months = details.get("months", 1)
+                    dynamic_payout = 1000 + (months * 250)
+                    database.add_points(username, dynamic_payout)
+                    await sender.send_message(f"🏆 MILESTONE! @{username} claimed their Month {months} member card and scored 🎁 {dynamic_payout:,} points! 🎁")
+                    sheets_sync.sync_to_google_sheets()
+                    continue
+
+                elif message_type == "superChatEvent":
+                    donation_amount = details.get("amount", 5.0)
+                    print(f"🌟 [SUPER CHAT] {username} donated ${donation_amount}")
+                    sheets_sync.sync_to_google_sheets()
+                    continue
+
+                elif message_type == "membershipGIFTEvent":
+                    NEW_MEMBER_BONUS = 2500
+                    database.add_points(username, NEW_MEMBER_BONUS)
+                    await sender.send_message(f"👑 HYPE! @{username} just supported the channel and received a massive point drop of {NEW_MEMBER_BONUS:,} points! 🚀")
+                    sheets_sync.sync_to_google_sheets()
+                    continue
+
+                # Handle Gamba betting wagers
+                if message_text.startswith("!gamba"):
+                    if not admin_manager.IS_BETTING_OPEN or admin_manager.IS_BETTING_LOCKED:
+                        continue
+                    parts = message_text.split()
+                    if len(parts) >= 3:
+                        try:
+                            amount_str = parts[1].lower()
+                            vote = parts[2].lower()
+                            if vote not in admin_manager.VALID_OPTIONS: continue
+
+                            if amount_str in ["all", "allin", "all-in"]:
+                                amount = database.get_balance(username)
+                            else:
+                                amount = int(amount_str)
                             
-                        if admin_manager.IS_BETTING_LOCKED:
-                            print(f"🔒 GAMBA LOCKED: {username} tried to bet, but the pool is locked.")
-                            continue
+                            if amount <= 0: continue
+                            success, gamba_msg = database.place_bet(username, amount, vote)
+                            if not gamba_msg: gamba_msg = "Bet rejected."
+                            print(f"🎲 GAMBA REGISTERED: @{username} -> {gamba_msg}")
+                            
+                            if amount_str in ["all", "allin", "all-in"] and success:
+                                await sender.send_message(f"🔥 ALL-IN! @{username} just risked all {amount:,} points on '{vote}'! 🔥")
+                        except ValueError: pass
 
-                        parts = message_text.split()
-                        if len(parts) >= 3:
-                            try:
-                                vote = parts[2].lower()
-                                    
-                                # Validate choice against active variables
-                                if vote not in admin_manager.VALID_OPTIONS: # or amount <= 0
-                                    continue
+            # Fast 1-second interval pause ticker
+            await asyncio.sleep(1)
 
-                                amount_str = parts[1].lower()
-
-                                if amount_str in ["all", "allin", "all-in", "max", "maxbet"]:
-                                    amount = database.get_balance(username)
-                                else:
-                                    amount = int(amount_str)
-                                    
-                                if amount <= 0:
-                                    print(f"🖲️ {username} tried to bet 0 or an invalid amount ({amount})")
-                                    continue
-
-                                success, gamba_msg = database.place_bet(username, amount, vote)
-                                if not gamba_msg:
-                                    gamba_msg = "❌ Bet rejected by sytem settings or insufficient balance."
-                                print(f"💎 GAMBA REGISTERED {username} -> {gamba_msg}")
-
-                                if amount_str in ["all", "allin", "all-in", "max", "maxbet"] and success:
-                                    await sender.send_message(f"🔥 {username} just risked their life savings of {amount:,} on '{vote}'! 🔥")# AWAIT_ADD
-
-                            except ValueError:
-                                print(f"🖲️ {username} entered an invalid amount string - must be int or positive balance")
-                                pass
-
-                await asyncio.sleep(1)
-
-            except asyncio.CancelledError:
-                IS_BOT_RUNNING = False
-                break
-            except Exception as e:
-                print(f"⚠️ Error in subroutine: {e}")
-                await asyncio.sleep(2)
-
-        if not IS_BOT_RUNNING:
+        except asyncio.CancelledError:
+            IS_BOT_RUNNING = False
             break
-        # If the loop is broken, force a 2-second pause before recycling the token connection
-        print("🔄️ Re-establishing connection...")
-        await asyncio.sleep(2)
-    
+        except Exception as e:
+            print(f"⚠️ Core loop warning: {e}")
+            await asyncio.sleep(2)
+
     await sender.stop()
 
 def run_bot():
-    """Root execution gate to boot the asynchronous main function on Windows."""
+    """Root execution gate to handle manual system exits explicitly on Windows."""
     try:
         asyncio.run(run_bot_async())
-    except KeyboardInterrupt:
-        print("\n🛑 Shutting down...")
+    except (KeyboardInterrupt, SystemExit):
+        print("\n👋 System Shutdown Hook Activated. Closing bot down completely!")
+        sys.exit(0)
 
 if __name__ == "__main__":
     run_bot()
