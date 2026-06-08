@@ -2,7 +2,6 @@ import database
 
 ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCkYwhjg79txij8wDA-Jiv5Q", "UCncmqSbJ6bm6EekhTvwf-nw"] # @magicmskh, @barelyalec, @notalecprobably, @larrryft @xddkai
 
-# Live in-memory tracking of the current betting state
 IS_BETTING_OPEN = False
 IS_BETTING_LOCKED = False  
 VALID_OPTIONS = []
@@ -17,15 +16,12 @@ def process_admin_command(sender_id, sender_name, message_text):
     if not message_text or not message_text.startswith("!"):
         return None
 
-    # Split the incoming string into a list array of words
     parts = message_text.strip().split()
     if not parts:
         return None
 
-    # FIX 1: Extract index 0 to grab only the command word token string cleanly!
     command = parts[0].lower()
 
-    # FIX 2: Bulletproof lowercase handle matching for administrators
     s_name_clean = str(sender_name).strip().lower() if sender_name else ""
     
     is_admin_name = (
@@ -37,7 +33,6 @@ def process_admin_command(sender_id, sender_name, message_text):
         "notalecprobably" in s_name_clean
     )
 
-    # Authorized administrators block gate check
     is_authorized = sender_id in ADMIN_IDS or is_admin_name
     
     if not is_authorized:
@@ -53,7 +48,6 @@ def process_admin_command(sender_id, sender_name, message_text):
         if IS_BETTING_OPEN:
             return f"⚠️ A betting round is already active: '{CURRENT_QUESTION}'"
 
-        # FIX 3: Target index 1 string to extract the comma-separated options accurately
         VALID_OPTIONS = [opt.strip().lower() for opt in parts[1].split(",")]
         CURRENT_QUESTION = " ".join(parts[2:])
         
@@ -166,7 +160,6 @@ def get_current_pool_info():
     if not IS_BETTING_OPEN:
         return "🎲 No active betting pool is open right now."
 
-    # Checks to see if the pool has been locked manually by a mod/admin
     status_label = "🔒 LOCKED!" if IS_BETTING_LOCKED else "🟢 OPEN!"
 
     return (f"🎰 ACTIVE POOL {status_label}: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount] [option] to play!")

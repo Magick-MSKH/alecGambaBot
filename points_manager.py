@@ -2,7 +2,7 @@ import time
 import database
 import sheets_sync
 
-# Config constants
+# Init constants
 POINTS_PER_CHAT = 10
 POINTS_PASSIVE = 50
 POINTS_SUPER_CHAT_MULTIPLIER = 250 # Example: ($5 Super Chat) * 250 = 1250 points

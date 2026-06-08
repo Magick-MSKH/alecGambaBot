@@ -4,7 +4,6 @@ import asyncio
 import admin_manager
 import sheets_sync
 
-# NEW GLOBAL: This holds the reference to the active YouTube browser tab
 SENDER_OBJECT = None
 
 async def check_terminal_input():

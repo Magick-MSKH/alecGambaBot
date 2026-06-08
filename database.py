@@ -126,7 +126,6 @@ def resolve_bets(winning_type):
             payout = amount * 2
             cursor.execute("UPDATE users SET points = points + ?, bets_won = bets_won + 1 WHERE username = ?", (payout, username))
             
-            # FIX THE LOCK: Run the peak balance check directly on THIS active cursor
             # instead of calling a separate function that opens a new connection!
             cursor.execute("UPDATE users SET highest_peak = points WHERE username = ? AND points > highest_peak", (username,))
             

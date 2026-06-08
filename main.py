@@ -58,7 +58,6 @@ async def run_bot_async():
     IS_BOT_RUNNING = True
 
     # --- MASTER BROWSER STREAM ENGINE LOOP ---
-    # Completely immune to 1-hour token expirations and Members-Only blocks!
     while IS_BOT_RUNNING:
         try:
             current_time = time.time()
@@ -69,7 +68,6 @@ async def run_bot_async():
                 sheets_sync.sync_to_google_sheets()
                 last_passive_tick = current_time
 
-            # Ask our authenticated Playwright Chrome tab for new messages visible on screen
             items = await sender.get_new_messages()
 
             for c in items:
@@ -82,12 +80,10 @@ async def run_bot_async():
                 if "magickbot0" in username.lower():
                     continue
 
-                # Process database point entries silently behind the scenes
                 points_manager.process_incoming_message(
                     username, message_text, message_type, details=details, is_member=is_member
                 )
 
-                # Route Outputs based on determined event attributes
                 if message_type == "textMessageEvent":
                     print(f"💬 [LIVE_WINDOW] {username}: {message_text}")
                     
@@ -96,8 +92,6 @@ async def run_bot_async():
                         await sender.send_message(bot_reply)
                         continue
 
-                    # FIX: Pass a blank string "" instead of 'channel_id'
-                    # The admin script will safely authorize based on the username handle!
                     admin_reply = admin_manager.process_admin_command("", username, message_text)
                     if admin_reply and isinstance(admin_reply, str):
                         await sender.send_message(admin_reply)
@@ -107,7 +101,7 @@ async def run_bot_async():
                     months = details.get("months", 1)
                     dynamic_payout = 1000 + (months * 250)
                     database.add_points(username, dynamic_payout)
-                    await sender.send_message(f"🏆 MILESTONE! @{username} claimed their Month {months} member card and scored 🎁 {dynamic_payout:,} points! 🎁")
+                    await sender.send_message(f"🏆 MILESTONE! {username} claimed their Month {months} member card and scored 🎁 {dynamic_payout:,} points! 🎁")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
@@ -120,11 +114,10 @@ async def run_bot_async():
                 elif message_type == "membershipGIFTEvent":
                     NEW_MEMBER_BONUS = 2500
                     database.add_points(username, NEW_MEMBER_BONUS)
-                    await sender.send_message(f"👑 HYPE! @{username} just supported the channel and received a massive point drop of {NEW_MEMBER_BONUS:,} points! 🚀")
+                    await sender.send_message(f"👑 HYPE! {username} just supported the channel and received a massive point drop of {NEW_MEMBER_BONUS:,} points! 🚀")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
-                # Handle Gamba betting wagers
                 if message_text.startswith("!gamba"):
                     if not admin_manager.IS_BETTING_OPEN or admin_manager.IS_BETTING_LOCKED:
                         continue
@@ -143,13 +136,12 @@ async def run_bot_async():
                             if amount <= 0: continue
                             success, gamba_msg = database.place_bet(username, amount, vote)
                             if not gamba_msg: gamba_msg = "Bet rejected."
-                            print(f"🎲 GAMBA REGISTERED: @{username} -> {gamba_msg}")
+                            print(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
                             
                             if amount_str in ["all", "allin", "all-in"] and success:
-                                await sender.send_message(f"🔥 ALL-IN! @{username} just risked all {amount:,} points on '{vote}'! 🔥")
+                                await sender.send_message(f"🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🔥")
                         except ValueError: pass
 
-            # Fast 1-second interval pause ticker
             await asyncio.sleep(1)
 
         except asyncio.CancelledError:

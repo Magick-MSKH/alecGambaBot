@@ -5,7 +5,6 @@ def process_user_command(username, message_text):
         Return STR message if command is triggered, otherwise Return None
     """
 
-    # Clean up Input STR
     parts = message_text.strip().split()
     if not parts:
         return None
@@ -32,7 +31,6 @@ def process_user_command(username, message_text):
                 return "📋 The leaderboard is currently empty!"
                 
             response = "🏆 TOP 5 RICHEST PLAYERS: "
-            # Format players nicely into a single chat string line
             rank_strings = []
             for i, (username, points) in enumerate(top_players, 1):
                 rank_strings.append(f"#{i} {username} ({points} pts)")
@@ -43,10 +41,7 @@ def process_user_command(username, message_text):
 
     elif command in ["!current_gamba", "!current_bet", "!gamba_info", "!pool"]:
         try:
-            ## I think this import needs to be LOCAL to this script, as to prevent out-of-scope errors (maybe) (idk)
             import admin_manager
-
-            # Fetch structured text from def get_current_pool_info() in admin_manager
             pool_info = admin_manager.get_current_pool_info()
             return pool_info
         except Exception as e:

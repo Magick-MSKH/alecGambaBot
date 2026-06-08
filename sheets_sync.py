@@ -13,7 +13,6 @@ def sync_to_google_sheets():
     global GC_SESSION
     
     try:
-        # Check if we need to log in fresh OR refresh an expired token!!
         if GC_SESSION is None:
             GC_SESSION = gspread.service_account(filename="sheets_credentials.json")
         else:
