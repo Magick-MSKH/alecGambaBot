@@ -50,6 +50,23 @@ def init_db():
         )
     ''')
     
+    # Create GOALS table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS global_goals (
+            goal_name TEXT PRIMARY KEY,
+            points_needed INTEGER,
+            points_contributed INTEGER
+        )
+    ''')
+
+    # Init default goal if table is completely fresh
+    cursor.execute("SELECET COUNT(*) FROM global_goals")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            "INSERT INTO gobal_goals (goal_name, points_needed, points_contributed) VALUES (?, ?, ?)",
+            ("NO REF WHERE GOAL global_goals VALUE", 9999999, 0)
+        )
+
     conn.commit()
     conn.close()
 
@@ -277,5 +294,36 @@ def clear_daily_claims():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM daily_claims")
+    conn.commit()
+    conn.close()
+
+def get_active_goal():
+    """ Fetches current goal data """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT goal_name, points_needed, points_contributed FROM global_goals LIMIT 1")
+    row = cursor.fetchone()
+    conn.close()
+    return row
+
+def contribute_to_goal(amount):
+    """ INC current active goal """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE global_goals SET points_contributed = points_contributed + ?", (amount,))
+    conn.commit()
+    conn.close()
+
+def set_new_global_goal(new_name, points_needed):
+    """ Wipes the old goal and inserts a fresh community challenge line """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    # Wipe the existing active row
+    cursor.execute("DELETE FROM global_goals")
+    # Insert the new challenge configuration
+    cursor.execute(
+        "INSERT INTO global_goals (goal_name, points_needed, points_contributed) VALUES (?, ?, 0)",
+        (new_name, points_needed)
+    )
     conn.commit()
     conn.close()

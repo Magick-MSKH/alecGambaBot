@@ -41,6 +41,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     # ==========================================
     # COMMAND 1: !gamba_open [option1,option2] [Question text...]
     # ==========================================
+
     if command == "!gamba_open":
         if len(parts) < 3:
             return "⚠️ Usage: !gamba_open [option1,option2] [Question text...]"
@@ -59,6 +60,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     # ==========================================
     # COMMAND 2: !gamba_lock
     # ==========================================
+
     elif command == "!gamba_lock":
         if not IS_BETTING_OPEN:
             return "⚠️ There is no active betting pool open to lock."
@@ -71,6 +73,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     # ==========================================
     # COMMAND 3: !gamba_win [winning_option]
     # ==========================================
+
     elif command == "!gamba_win":
         if not IS_BETTING_OPEN:
             return "⚠️ There is no active betting pool to resolve right now."
@@ -94,6 +97,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     # ==========================================
     # COMMAND 4: !gamba_cancel
     # ==========================================
+
     elif command == "!gamba_cancel":
         if not IS_BETTING_OPEN:
             return "⚠️ There is no active betting pool to cancel."
@@ -110,6 +114,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     # ==========================================
     # COMMAND 5: !give [username] [amount]
     # ==========================================
+
     elif command == "!give":
         if len(parts) < 3:
             return "⚠️ Usage: !give [username] [amount]"
@@ -152,6 +157,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     # ==========================================
     # COMMAND 6: !reset_user [username]
     # ==========================================
+
     elif command == "!reset_user":
         if len(parts) < 2:
             return "⚠️ Usage: !reset_user [username]"
@@ -173,11 +179,31 @@ def process_admin_command(sender_id, sender_name, message_text):
     # COMMAND 7: Local console exit
     # ==========================================
 
-    elif command == ["!quit", "!exit", "!shutdown"]:
+    elif command in ["!quit", "!exit", "!shutdown"]:
         if sender_name == "ConsoleAdmin":
             import main
             main.IS_BOT_RUNNING = False
             return "🛑 SHUTTING DOWN: Closing local tasks and closing Chrome window context..."
+
+    # ==========================================
+    # COMMAND 8: !gamba_goal
+    # ==========================================
+
+    elif command == "!gamba_goal":
+        if leng(parts) < 3:
+            return "⚠️ Usage: !gamba_goal [points_needed] [Goal Description]"
+
+        try:
+            points_needed = int(parts[1])
+            goal_text = " ".join(parts[2:])
+
+            database.set_new_global_goal(goal_text, points_needed)
+            return f"🎯 NEW GOAL SET! '{goal_text}' | 📊 Points Needed: {points_needed:,}"
+        except ValueError:
+            return "❌ Error: Points needed must be an INTEGER!"
+        except Exception as e:
+            return f"🐞 [DEBUG] Error setting goal: {e}"
+
 
     return None
 
