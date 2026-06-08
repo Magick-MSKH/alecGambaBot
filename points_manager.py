@@ -47,16 +47,20 @@ def process_incoming_message(username, message_text, message_type, details=None,
             print(f"💰 {username} earned {POINTS_PER_CHAT} points for chatting")
 
     # 2. Handle Super Chats
-    elif message_type == "superChatEvent":
-        # 'details' will contain the dollar amount from the YouTube API
-        donation_amount = details.get("amount", 0)
-        bonus = int(donation_amount * POINTS_SUPER_CHAT_MULTIPLIER)
-        database.add_points(username, bonus)
-        print(f"🌟 SUPER CHAT! {username} donated ${donation_amount} and got {bonus} points!")
+    if message_type == "superChatEvent":
+        is_usd = details.get("is_usd", True)
+        if is_usd:
+            donation_amount = details.get("amount", 5.0)
+            points_to_add = int(donation_amount * 250)
+        else:
+            points_to_add = 1000
+
+        database.add_points(username, points_to_add)
+        print(f"🌟 [SUPER CHAT DETECTED] {username} donated ${donation_amount} and got {points_to_add} points!")
         sheets_sync.sync_to_google_sheets()
 
     # 3. Handle Membership Gifts / New Members
-    elif message_type == "membershipGIFTEvent" or message_type == "newSponsorEvent":
+    if message_type == "membershipGIFTEvent" or message_type == "newSponsorEvent":
         database.add_points(username, POINTS_MEMBER_GIFT)
         print(f"👑 MEMBER EVENT! {username} supported the channel and earned bonus points!")
         sheets_sync.sync_to_google_sheets()

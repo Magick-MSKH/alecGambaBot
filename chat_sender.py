@@ -37,6 +37,22 @@ class YouTubeChatSender:
         print("🔒 ACTION REQUIRED: If you aren't logged in, log into your YouTube Streaming account in the browser window that just popped up!")
         print("Once you are on your stream chat page, leave the browser open in the background.")
 
+        # =========================================
+        # NEW: Ignores previous message on startup
+        # =========================================
+
+        print("⏳ Waiting for initial chat history to populate...")
+        await asyncio.sleep(3)
+
+        try:
+            initial_cards = await self.page.query_selector_all('yt-live-chat-text-message-renderer, yt-live-chat-paid-message-renderer, yt-live-chat-membership-item-renderer')
+            for card in initial_cards:
+                msg_id = await card.get_attribute('id')
+                if msg_id:
+                    self.seen_message_ids.add(msg_id)
+            print(f"🛡️  Amnesty Shield Active: Ignored {len(initial_cards)} historical messages from the backlog.")
+        except Exception as e:
+            print(f"⚠️ Failed to seed initial chat history: {e}")
 
     async def get_new_messages(self):
         """Scrapes new live chat messages directly off the Chrome screen window natively."""
@@ -75,16 +91,39 @@ class YouTubeChatSender:
                     amt_elem = await card.query_selector('#purchase-amount')
                     if amt_elem:
                         raw_amt = await amt_elem.inner_text()
-                        try: details["amount"] = float(raw_amt.replace('$', '').strip())
-                        except Exception: details["amount"] = 5.0
+                        raw_amt_str = raw_amt.strip()
+
+                        if "$" in raw_amt_str:
+                            try:
+                                details["amount"] = float(raw_amt_str.replace('$', '').strip())
+                                details["is_usd"] = True
+                            except Exception:
+                                details["amount"] = 5.0
+                                details["is_usd"] = True
+                        else:
+                            print(f"🌍 International Currency Detected: {raw_amt_str}")
+                            details["amount"] = 1.0
+                            details["is_usd"] = False
 
                 elif tag_name == "yt-live-chat-membership-item-renderer":
                     header_elem = await card.query_selector('#header-text')
                     header_text = await header_elem.inner_text() if header_elem else ""
+
+                    message_text = "Channel Membership Event! 👑" # Dummy STR so loop filters don't reject
                     
                     if "milestone" in header_text.lower() or "member for" in header_text.lower():
                         message_type = "memberMilestoneChatEvent"
-                        details["months"] = 1
+
+                        details["months"] = 1 # Fallback
+
+                        try:
+                            words = header_text.split()
+                            for word in words:
+                                if word.isdigit():
+                                    details["months"] = int(word)
+                                    break
+                        except Exception as e:
+                            print(f"⚠️ Error while calculating Membership Event: {e}")
                     else:
                         message_type = "membershipGIFTEvent"
 

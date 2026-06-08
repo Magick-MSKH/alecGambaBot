@@ -100,21 +100,26 @@ async def run_bot_async():
                 elif message_type == "memberMilestoneChatEvent":
                     months = details.get("months", 1)
                     dynamic_payout = 1000 + (months * 250)
+
+                    print(f"🏆 [MILESTONE DETECTED] {username} cashed in Month {months}!")
                     database.add_points(username, dynamic_payout)
-                    await sender.send_message(f"🏆 MILESTONE! {username} claimed their Month {months} member card and scored 🎁 {dynamic_payout:,} points! 🎁")
+                    await sender.send_message(f"🏆🎁 MILESTONE! {username} claimed their Month {months} membership message and earned {dynamic_payout:,} points!")
+
                     sheets_sync.sync_to_google_sheets()
                     continue
 
                 elif message_type == "superChatEvent":
                     donation_amount = details.get("amount", 5.0)
                     print(f"🌟 [SUPER CHAT] {username} donated ${donation_amount}")
+                    await sender.send_message(f"🌟 THANK YOU {username}! Your ${donation_amount:.2f} SuperChat earned you a massive points bonus! 👑")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
                 elif message_type == "membershipGIFTEvent":
                     NEW_MEMBER_BONUS = 2500
+                    print(f"👑 [MEMBERSHIP UPGRADE] {username} supported the channel!")
                     database.add_points(username, NEW_MEMBER_BONUS)
-                    await sender.send_message(f"👑 HYPE! {username} just supported the channel and received a massive point drop of {NEW_MEMBER_BONUS:,} points! 🚀")
+#                   await sender.send_message(f"👑 ~~~~Membership text here~~~~ ")
                     sheets_sync.sync_to_google_sheets()
                     continue
 
@@ -130,17 +135,26 @@ async def run_bot_async():
 
                             if amount_str in ["all", "allin", "all-in"]:
                                 amount = database.get_balance(username)
+                            elif amount_str == "half":
+                                current_wealth = database.get_balance(username)
+                                amount = int(current_wealth / 2)
                             else:
                                 amount = int(amount_str)
                             
-                            if amount <= 0: continue
+                            if amount <= 0:
+                                continue
+
                             success, gamba_msg = database.place_bet(username, amount, vote)
-                            if not gamba_msg: gamba_msg = "Bet rejected."
+                            if not gamba_msg:
+                                gamba_msg = "Bet rejected."
                             print(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
                             
                             if amount_str in ["all", "allin", "all-in"] and success:
-                                await sender.send_message(f"🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🔥")
-                        except ValueError: pass
+                                await sender.send_message(f"🐦‍🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🐦‍🔥")
+                            elif amount_str == "half":
+                                await sender.send_message(f"🔥 {username} just wagered HALF of their points ({amount:,}) on '{vote}'! 🔥")
+                        except ValueError:
+                            pass
 
             await asyncio.sleep(1)
 
@@ -159,6 +173,7 @@ def run_bot():
         asyncio.run(run_bot_async())
     except (KeyboardInterrupt, SystemExit):
         print("\n👋 System Shutdown Hook Activated. Closing bot down completely!")
+        import sys
         sys.exit(0)
 
 if __name__ == "__main__":

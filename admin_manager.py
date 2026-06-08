@@ -123,6 +123,32 @@ def process_admin_command(sender_id, sender_name, message_text):
         except ValueError:
             return "❌ Error: Amount must be a whole number."
 
+    # ============================================
+    # COMMAND 5b: !give_all [amount]  <- RESTORED!
+    # ============================================
+
+    elif command == "!give_all":
+        if len(parts) < 2:
+            return "⚠️ Usage: !give_all [amount]"
+
+        amount_str = parts[1]
+        try:
+            amount = int(amount_str)
+
+            # Execute the mass update in the database
+            database.add_points_to_all_registered(amount)
+
+            # Trigger immediate Google Sheets sync so the leaderboard updates
+            import sheets_sync
+            sheets_sync.sync_to_google_sheets()
+
+            return f"🎉 Giving {amount} points to ALL users! 🎁"
+
+        except ValueError:
+            return "❌ Error: Amount must be an integer."
+        except Exception as e:
+            return f"❌ Database error: {str(e)}"
+
     # ==========================================
     # COMMAND 6: !reset_user [username]
     # ==========================================
@@ -160,6 +186,7 @@ def get_current_pool_info():
     if not IS_BETTING_OPEN:
         return "🎲 No active betting pool is open right now."
 
-    status_label = "🔒 LOCKED!" if IS_BETTING_LOCKED else "🟢 OPEN!"
-
-    return (f"🎰 ACTIVE POOL {status_label}: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount] [option] to play!")
+    if IS_BETTING_LOCKED:
+        return (f"🎰 ACTIVE POOL 🔒LOCKED!: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)}")
+    else:
+        return (f"🎰 ACTIVE POOL 🟢OPEN!: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount] [option] to play!")

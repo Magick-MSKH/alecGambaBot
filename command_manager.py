@@ -11,9 +11,9 @@ def process_user_command(username, message_text):
     
     command = parts[0].lower()
 
-    ########################################
-    # 1. Handle Balance Check Command
-    ########################################
+    # ==========================================
+    # COMMAND 1: !balance
+    # ==========================================
     if command in ["!balance", "!points", "!cash"]:
         try:
             balance = database.get_balance(username)
@@ -21,9 +21,9 @@ def process_user_command(username, message_text):
         except Exception as e:
             return f"❌ ERROR Checking balance: {str(e)}"
 
-    ########################################
-    # 2. Handle Leaderboard commands 
-    ########################################
+    # ==========================================
+    # COMMAND 2: !leaderboard
+    # ==========================================
     elif command in ["!leaderboard", "!richest", "!top"]:
         try:
             top_players = database.get_top_users(5)
@@ -39,6 +39,10 @@ def process_user_command(username, message_text):
         except Exception as e:
             return f"❌ Error loading leaderboard: {str(e)}"
 
+    # ==========================================
+    # COMMAND 3: !current_gamba
+    # ==========================================
+
     elif command in ["!current_gamba", "!current_bet", "!gamba_info", "!pool"]:
         try:
             import admin_manager
@@ -47,9 +51,9 @@ def process_user_command(username, message_text):
         except Exception as e:
             return f"❌ Error fetching pool data: {str(e)}"
 
-    ########################################
-    # 3. Handle Statistics commands
-    ########################################
+    # ==========================================
+    # COMMAND 4: !stats
+    # ==========================================
     elif command in ["!stats", "!profile", "!gamba_stats"]:
         stats = database.get_player_stats(username)
         if not stats:
@@ -58,9 +62,9 @@ def process_user_command(username, message_text):
             points, placed, won, lost, peak = stats
             return f"📊 {username}: {points} pts | Bets: {placed} (🏆{won}W /❌{lost}L) | Personal Peak: {peak} pts"
 
-    ########################################
-    # 4. Handle Peak commands
-    ########################################
+    # ==========================================
+    # COMMAND 5: !record
+    # ==========================================
     elif command in ["!record", "!peak", "!halloffame"]:
         record = database.get_all_time_peak_record()
         if not record or record[1] == 1000:
@@ -68,15 +72,15 @@ def process_user_command(username, message_text):
         record_holder, record_points = record
         return f"👑 ALL-TIME RECORD: {record_holder} achieved a peak of {record_points} points! 🔥"
 
-    ########################################
-    # 5. Handle Help Command
-    ########################################
+    # ==========================================
+    # COMMAND 6: !help
+    # ==========================================
     elif command in ["!help", "!commands"]:
-        return "🤖 Available commands: !balance, !gamba [amount] [vote]"
+        return "🤖 How to gamba: !gamba [amount] [vote], For more info check the Discord!"
 
-    ########################################
-    # 6. Handle Daily Points Command
-    ########################################
+    # ==========================================
+    # COMMAND 7: !daily
+    # ==========================================
     elif command in ["!daily", "!bonus", "!check_in"]:
         DAILY_REWARD = 500
         try:
