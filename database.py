@@ -60,11 +60,11 @@ def init_db():
     ''')
 
     # Init default goal if table is completely fresh
-    cursor.execute("SELECET COUNT(*) FROM global_goals")
+    cursor.execute("SELECT COUNT(*) FROM global_goals")
     if cursor.fetchone()[0] == 0:
         cursor.execute(
             "INSERT INTO gobal_goals (goal_name, points_needed, points_contributed) VALUES (?, ?, ?)",
-            ("NO REF WHERE GOAL global_goals VALUE", 9999999, 0)
+            ("no ref WHERE GOAL global_goal FROM VALUE", 9999999, 0)
         )
 
     conn.commit()

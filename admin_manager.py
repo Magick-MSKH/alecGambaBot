@@ -186,11 +186,11 @@ def process_admin_command(sender_id, sender_name, message_text):
             return "🛑 SHUTTING DOWN: Closing local tasks and closing Chrome window context..."
 
     # ==========================================
-    # COMMAND 8: !gamba_goal
+    # COMMAND 8: !gamba_goal [points_needed] [Goal Description]
     # ==========================================
 
     elif command == "!gamba_goal":
-        if leng(parts) < 3:
+        if len(parts) < 3:
             return "⚠️ Usage: !gamba_goal [points_needed] [Goal Description]"
 
         try:
@@ -203,7 +203,6 @@ def process_admin_command(sender_id, sender_name, message_text):
             return "❌ Error: Points needed must be an INTEGER!"
         except Exception as e:
             return f"🐞 [DEBUG] Error setting goal: {e}"
-
 
     return None
 

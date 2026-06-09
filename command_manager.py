@@ -109,7 +109,7 @@ def process_user_command(username, message_text):
 
         # Build text-based progress bar for chat
         bar_length = 10
-        filled_length = in(bar_length * current // needed)
+        filled_length = int(bar_length * current // needed)
         bar = "🟩" * filled_length + "⬜" * (bar_length - filled_length)
 
         return f"🎯 CURRENT GOAL: {goal_name} | {bar} ({percent}%) | 📊 Progress: {current:,} / {needed:,} points redeemed!"
@@ -139,7 +139,7 @@ def process_user_command(username, message_text):
             return f"🎨[BENNY REDEEM] {username} spend {cost} to draw Benny: {details}"
 
         ### ADD TO STREAM GOAL ###
-        elif sub_command = "goal":
+        elif sub_command == "goal":
             if len(parts) < 3:
                 return "🤖 Specify an amount! Example: !redeem goal 100"
             try:
