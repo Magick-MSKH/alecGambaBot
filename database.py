@@ -67,6 +67,19 @@ def init_db():
             ("no ref WHERE GOAL global_goal FROM VALUE", 9999999, 0)
         )
 
+    # Create PIT table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS money_pit (
+            id INTEGER PRIMARY KEY,
+            jackpot_total INTEGER
+        )
+    ''')
+    
+    # Init default pit with 0 points if none exists
+    cursor.execute("SELECT COUNT(*) FROM money_pit")
+    if cursor.fetchone() == 0:
+        cursor.execute("INSERT INTO money_pit (id, jackpot_total) VALUES (1, 0)")
+
     conn.commit()
     conn.close()
 
@@ -325,5 +338,30 @@ def set_new_global_goal(new_name, points_needed):
         "INSERT INTO global_goals (goal_name, points_needed, points_contributed) VALUES (?, ?, 0)",
         (new_name, points_needed)
     )
+    conn.commit()
+    conn.close()
+
+def get_pit_total():
+    """ Fetches the current point balance inside the money pit """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT jackpot_total FROM money_pit WHERE id = 1")
+    row = cursor.fetchone()
+    conn.close()
+    return row if row else 0
+
+def add_to_pit(amount):
+    """ Increments the global money pit pool """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE money_pit SET jackpot_total = jackpot_total + ? WHERE id = 1", (amount,))
+    conn.commit()
+    conn.close()
+
+def reset_pit():
+    """ Wipes the money pit to an empty slate """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE money_pit SET jackpot_total = 0 WHERE id = 1")
     conn.commit()
     conn.close()

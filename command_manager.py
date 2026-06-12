@@ -1,4 +1,8 @@
+import time
+import random
 import database
+
+PIT_COOLDOWN_TRACKER = {}
 
 def process_user_command(username, message_text):
     """ Parse public user chat commands.
@@ -184,5 +188,62 @@ def process_user_command(username, message_text):
             return battle_reply
         except Exception as e:
             return f"❌ Error in Battle Engine: {str(e)}"
+
+    # ==========================================
+    # COMMAND 9: !pit
+    # ==========================================
+
+    elif command in ["!pit", "!throw", "!void"]:
+        current_time = time.time()
+        # Check PIT amount with the base command
+        if len(parts) < 2:
+            current_jackpot = database.get_pit_total()
+            return f"[MONEY PIT]: There are currently {current_jackpot:,} points inside the pit!"
+
+        if username in PIT_COOLDOWN_TRACKER:
+            if current_time < PIT_COOLDOWN_TRACKER[username]:
+                remaining_seconds = int(PIT_COOLDOWN_TRACKER[username] - current_time)
+                minutes = remaining_seconds // 60
+                seconds = remaining_seconds % 60
+                return f"🤖⏳ {username}, You have a {minutes}m {seconds}s cooldown on this command."
+
+        try:
+            # FIXED (INDEXING): Target index 1 to parse wager string safely
+            amount_str = parts[1].strip()
+            
+            if amount_str in ["all", "max"]:
+                amount = database.get_balance(username)
+            elif amount_str == "half":
+                amount = int(database.get_balance(username) / 2)
+            else:
+                amount = int(amount_str)
+
+            # Minimum of 100 points
+            if amount < 100:
+                return "❌ A Minimum of 100 points must be thrown into the pit."
+
+            balance = database.get_balance(username)
+            if balance < amount:
+                return f"❌ Insufficient wealth! You only have {balance:,} points."
+
+            database.add_points(username, -amount)
+            database.add_to_pit(amount)
+
+            PIT_COOLDOWN_TRACKER[username] = current_time + 300
+            
+            # Get updated total pool for lottery calculation
+            fresh_jackpot = database.get_pit_total()
+            roll = random.randint(1, 1000)
+            
+            if roll == 777:
+                database.add_points(username, fresh_jackpot)
+                database.reset_pit()
+                return f"🎰 JACKPOT! {username} rolled 7️⃣7️⃣7️⃣ and secured the entire pool of {fresh_jackpot:,} points!"
+            else:
+                return f"🕳️ {username} threw {amount:,} points into the money pit! The roll was {roll} . Current Pit Value: {fresh_jackpot:,} points!"
+
+        except ValueError:
+            return "❌ Error: Specify an Integer, 'half', or 'all' to throw into the pit."
+
     
     return None
