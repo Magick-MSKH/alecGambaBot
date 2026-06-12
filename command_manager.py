@@ -233,7 +233,7 @@ def process_user_command(username, message_text):
             
             # Get updated total pool for lottery calculation
             fresh_jackpot = database.get_pit_total()
-            roll = random.randint(1, 1000)
+            roll = random.randint(1, 999)
             
             if roll == 777:
                 database.add_points(username, fresh_jackpot)
