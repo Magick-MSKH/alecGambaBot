@@ -172,5 +172,17 @@ def process_user_command(username, message_text):
                 
             except ValueError:
                 return "❌ Error: Specify a valid whole number of points to redeem."
+
+    # ==========================================
+    # COMMAND 8: !battle
+    # ==========================================
+
+    elif command == "!battle"
+        try:
+            import battle_manager
+            battle_reply = battle_manager.process_battle_command(username, parts)
+            return battle_reply
+        except Exception as e:
+            return f"❌ Error in Battle Engine: {str(e)}"
     
     return None

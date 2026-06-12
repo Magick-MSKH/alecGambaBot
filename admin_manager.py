@@ -176,7 +176,7 @@ def process_admin_command(sender_id, sender_name, message_text):
             return f"❌ Reset error: {str(e)}"
     
     # ==========================================
-    # COMMAND 7: Local console exit
+    # COMMAND 7: !quit
     # ==========================================
 
     elif command in ["!quit", "!exit", "!shutdown"]:
@@ -185,9 +185,9 @@ def process_admin_command(sender_id, sender_name, message_text):
             main.IS_BOT_RUNNING = False
             return "🛑 SHUTTING DOWN: Closing local tasks and closing Chrome window context..."
 
-    # ==========================================
+    # ==========================================================
     # COMMAND 8: !gamba_goal [points_needed] [Goal Description]
-    # ==========================================
+    # ==========================================================
 
     elif command == "!gamba_goal":
         if len(parts) < 3:
@@ -203,6 +203,15 @@ def process_admin_command(sender_id, sender_name, message_text):
             return "❌ Error: Points needed must be an INTEGER!"
         except Exception as e:
             return f"🐞 [DEBUG] Error setting goal: {e}"
+
+    # ==========================================
+    # COMMAND 9: !battle_abort
+    # ==========================================
+
+    elif command == "!battle_abort":
+        import battle_manager
+        battle_manager.abort_battle()
+        return "⚔️  [ADMIN INTERVENTION] The active battle sequence has been forcefully terminated, and the arena table has been reset! 🛑"
 
     return None
 
