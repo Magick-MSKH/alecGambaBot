@@ -15,7 +15,7 @@ ACTIVE_BATTLE = {
 
 GLOBAL_BATTLE_COOLDOWN = 0
 
-def about_battle():
+def abort_battle():
     """ Forcefully resets the entire battle function """
     global ACTIVE_BATTLE
     ACTIVE_BATTLE = {
@@ -106,11 +106,12 @@ def process_battle_command(username, parts):
 
         if sub_cmd in ["decline", "refuse"]:
             instigator = ACTIVE_BATTLE["instigator"]
-            about_battle()
+            abort_battle()
             GLOBAL_BATTLE_COOLDOWN = current_time + 30
             return f"❌ {instigator}'s challenge was declined by {username_clean}"
 
         elif sub_cmd == "accept":
+            instigator = ACTIVE_BATTLE["instigator"]
             amount = ACTIVE_BATTLE["amount"]
             if database.get_balance(ACTIVE_BATTLE["instigator"]) < amount or database.get_balance(ACTIVE_BATTLE["opponent"]) < amount:
                 ACTIVE_BATTLE["status"] = "IDLE"
