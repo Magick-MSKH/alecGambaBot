@@ -70,15 +70,14 @@ def init_db():
     # Create PIT table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS money_pit (
-            id INTEGER PRIMARY KEY,
-            jackpot_total INTEGER
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            jackpot_total INTEGER DEFAULT 0
         )
     ''')
     
     # Init default pit with 0 points if none exists
-    cursor.execute("SELECT COUNT(*) FROM money_pit")
-    if cursor.fetchone() == 0:
-        cursor.execute("INSERT INTO money_pit (id, jackpot_total) VALUES (1, 0)")
+    cursor.execute("INSERT OR IGNORE INTO money_pit (id, jackpot_total) VALUES (1, 0)")
+    conn.commit()
 
     conn.commit()
     conn.close()
@@ -348,7 +347,7 @@ def get_pit_total():
     cursor.execute("SELECT jackpot_total FROM money_pit WHERE id = 1")
     row = cursor.fetchone()
     conn.close()
-    return row if row else 0
+    return row[0] if row else 0
 
 def add_to_pit(amount):
     """ Increments the global money pit pool """

@@ -181,7 +181,7 @@ def process_user_command(username, message_text):
     # COMMAND 8: !battle
     # ==========================================
 
-    elif command == "!battle"
+    elif command == "!battle":
         try:
             import battle_manager
             battle_reply = battle_manager.process_battle_command(username, parts)
