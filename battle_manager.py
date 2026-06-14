@@ -66,7 +66,7 @@ def process_battle_command(username, parts):
         amount_str = parts[2].strip()
 
         if target_opponent.lower() == username_clean.lower():
-            return f"❌ {username_clean}, you cannot battle yourself!"
+            return f"❌ {username_clean} , you cannot battle yourself!"
 
         try:
             amount = int(amount_str)
@@ -79,7 +79,7 @@ def process_battle_command(username, parts):
         oppo_bal = database.get_balance(target_opponent)
 
         if inst_bal < amount:
-            return f"❌ {username_clean}, you don't have enough points! Balance: {inst_bal:,}"
+            return f"❌ {username_clean} , you don't have enough points! Balance: {inst_bal:,}"
         if oppo_bal < amount:
             return f"❌ @{target_opponent} doesn't have enough points to wager!"
 
@@ -101,14 +101,14 @@ def process_battle_command(username, parts):
     # ====================================== #
 
     if ACTIVE_BATTLE["status"] == "CHALLENGED":
-        if username_clean.lower() != ACTIVE_BATTLE["opponent"].lower()
+        if username_clean.lower() != ACTIVE_BATTLE["opponent"].lower():
         return None # Ignore inputs from non-involved parties
 
         if sub_cmd in ["decline", "refuse"]:
             instigator = ACTIVE_BATTLE["instigator"]
             about_battle()
             GLOBAL_BATTLE_COOLDOWN = current_time + 30
-            return f"❌ {instigator}'s challenge was declined by {username_clean}."
+            return f"❌ {instigator}'s challenge was declined by {username_clean}"
 
         elif sub_cmd == "accept":
             amount = ACTIVE_BATTLE["amount"]
@@ -120,7 +120,7 @@ def process_battle_command(username, parts):
             ACTIVE_BATTLE["status"] = "WAITING_INST"
             ACTIVE_BATTLE["last_update_time"] = current_time 
 
-            return f"⚔️ Challenge Accepted! Target # has been set! {instigator}, please select your number (1 - 25)"
+            return f"⚔️ Challenge Accepted! Target # has been set! {instigator} , please select your number (1 - 25)"
 
     # ====================================== #
     # ========= INSTIGATOR # ENTRY ========= #
@@ -140,7 +140,7 @@ def process_battle_command(username, parts):
         ACTIVE_BATTLE["instigator_guess"] = guess
         ACTIVE_BATTLE["status"] = "WAITING_OPPO"
         ACTIVE_BATTLE["last_update_time"] = current_time
-        return f"🔐 {ACTIVE_BATTLE['instigator']} locked in {ACTIVE_BATTLE['instigator_guess']}! {ACTIVE_BATTLE['opponent']}, choose your number!"
+        return f"🔐 {ACTIVE_BATTLE['instigator']} locked in {ACTIVE_BATTLE['instigator_guess']}! {ACTIVE_BATTLE['opponent']} , choose your number!"
 
     # ====================================== #
     # ============= RESOLUTION ============= #
@@ -158,7 +158,7 @@ def process_battle_command(username, parts):
             return "❌ Number must be an Integer!"
 
         if guess == ACTIVE_BATTLE["instigator_guess"]:
-            return f"❌ {ACTIVE_BATTLE['opponent']}, you cannot choose the same number as your opponent!"
+            return f"❌ {ACTIVE_BATTLE['opponent']} , you cannot choose the same number as your opponent!"
         
         ACTIVE_BATTLE["opponent_guess"] = guess
 
