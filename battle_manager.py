@@ -126,7 +126,7 @@ def process_battle_command(username, parts):
     # ========= INSTIGATOR # ENTRY ========= #
     # ====================================== #
 
-    if ACTIVE_BATTLE["status"] = "WAITING_INST":
+    if ACTIVE_BATTLE["status"] == "WAITING_INST":
         if username_clean.lower() != ACTIVE_BATTLE["instigator"].lower():
             return None ### Forces turn-order (Instigator always goes first)
 
