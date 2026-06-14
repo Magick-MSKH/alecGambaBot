@@ -102,7 +102,7 @@ def process_battle_command(username, parts):
 
     if ACTIVE_BATTLE["status"] == "CHALLENGED":
         if username_clean.lower() != ACTIVE_BATTLE["opponent"].lower():
-        return None # Ignore inputs from non-involved parties
+            return None # Ignore inputs from non-involved parties
 
         if sub_cmd in ["decline", "refuse"]:
             instigator = ACTIVE_BATTLE["instigator"]
