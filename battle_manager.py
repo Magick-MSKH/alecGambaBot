@@ -81,7 +81,7 @@ def process_battle_command(username, parts):
         if inst_bal < amount:
             return f"❌ {username_clean} , you don't have enough points! Balance: {inst_bal:,}"
         if oppo_bal < amount:
-            return f"❌ @{target_opponent} doesn't have enough points to wager!"
+            return f"❌ {target_opponent} doesn't have enough points to wager!"
 
         # Init global state dict data
         ACTIVE_BATTLE = {
@@ -94,7 +94,7 @@ def process_battle_command(username, parts):
             "opponent_guess": None,
             "last_update_time": current_time
         }
-        return f"⚔️ {target_opponent}, you have been challenged by {username_clean} to battle for {amount:,} points!"
+        return f"⚔️ {target_opponent} , you have been challenged by {username_clean} to battle for {amount:,} points!"
 
     # ====================================== #
     # ======= ACCEPT / REFUSAL PHASE ======= #
@@ -104,11 +104,11 @@ def process_battle_command(username, parts):
         if username_clean.lower() != ACTIVE_BATTLE["opponent"].lower():
             return None # Ignore inputs from non-involved parties
 
-        if sub_cmd in ["decline", "refuse"]:
+        if sub_cmd in ["decline", "refuse", "deny"]:
             instigator = ACTIVE_BATTLE["instigator"]
             abort_battle()
             GLOBAL_BATTLE_COOLDOWN = current_time + 30
-            return f"❌ {instigator}'s challenge was declined by {username_clean}"
+            return f"❌ {instigator}'s challenge was declined by {username_clean}."
 
         elif sub_cmd == "accept":
             instigator = ACTIVE_BATTLE["instigator"]
