@@ -21,7 +21,7 @@ def process_user_command(username, message_text):
     if command in ["!balance", "!points", "!cash"]:
         try:
             balance = database.get_balance(username)
-            return f"💰 {username}, you currently have {balance} points!"
+            return f"💰 {username} , you currently have {balance} points!"
         except Exception as e:
             return f"❌ ERROR Checking balance: {str(e)}"
 
@@ -61,7 +61,7 @@ def process_user_command(username, message_text):
     elif command in ["!stats", "!profile", "!gamba_stats"]:
         stats = database.get_player_stats(username)
         if not stats:
-            return f"📋 Username {username}, no stats found yet! Type in chat to register."
+            return f"📋 Username {username} , no stats found yet! Type in chat to register."
         else:
             points, placed, won, lost, peak = stats
             return f"📊 {username}: {points} pts | Bets: {placed} (🏆{won}W /❌{lost}L) | Personal Peak: {peak} pts"
@@ -89,7 +89,7 @@ def process_user_command(username, message_text):
         DAILY_REWARD = 500
         try:
             if database.check_daily_claimed(username):
-                return f"⚠️ {username}, you have already claimed your bonus points for this stream."
+                return f"⚠️ {username} , you have already claimed your bonus points for this stream."
             
             database.add_points(username, DAILY_REWARD)
             database.record_daily_claim(username)
@@ -136,7 +136,7 @@ def process_user_command(username, message_text):
             details = " ".join(parts[2:])
             balance = database.get_balance(username)
             if balance < cost:
-                return f"❌ {username}, you need {cost:,} points to draw Benny! (Balance: {balance:,})"
+                return f"❌ {username} , you need {cost:,} points to draw Benny! (Balance: {balance:,})"
             
             database.add_points(username, -cost)
             print(f"🎨[BENNY REDEEM] {username} spend {cost} to draw Benny: {details}")
@@ -205,7 +205,7 @@ def process_user_command(username, message_text):
                 remaining_seconds = int(PIT_COOLDOWN_TRACKER[username] - current_time)
                 minutes = remaining_seconds // 60
                 seconds = remaining_seconds % 60
-                return f"🤖⏳ {username}, You have a {minutes}m {seconds}s cooldown on this command."
+                return f"🤖⏳ {username} , You have a {minutes}m {seconds}s cooldown on this command."
 
         try:
             # FIXED (INDEXING): Target index 1 to parse wager string safely

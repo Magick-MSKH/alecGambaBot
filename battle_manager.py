@@ -40,7 +40,7 @@ def process_battle_command(username, parts):
             print("⌛ [BATTLE TIMEOUT]")
             abort_battle()
             GLOBAL_BATTLE_COOLDOWN = current_time + 60
-            print "⌛ BATTLE TIMEOUT: 60 second time limit expired!"
+            return "⌛ BATTLE TIMEOUT: 60 second time limit expired!"
 
     if len(parts) < 2:
         return "⚔️ Usage: !battle [@opponent] [amount] | !battle [accept/refuse]"
