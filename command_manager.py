@@ -245,5 +245,23 @@ def process_user_command(username, message_text):
         except ValueError:
             return "❌ Error: Specify an Integer, 'half', or 'all' to throw into the pit."
 
+    # ==========================================
+    # COMMAND 9: !create [class]
+    # ==========================================
+
+    elif command == "!create":
+        if len(parts) < 2:
+            return "⚔️ Usage: !create [Warrior/Wizard/Archer/Valkyrie] | Entry costs 5,000 points!"
+        chosen_class = parts[1].strip()
+        import rpg_database
+        return rpg_database.register_new_character(username, chosen_class)
+
+    elif command == "!bank":
+        if len(parts) < 3 or parts[1].strip().lower() != "deposit":
+            return "💰 GHEED'S BANK: Exchange channel points for RPG gold! Usage: !bank deposit [amount]"
+        
+        amount_str = parts[2].strip()
+        import rpg_database
+        return rpg_database.deposit_to_gheed(username, amount_str)
     
     return None
