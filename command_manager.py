@@ -263,5 +263,13 @@ def process_user_command(username, message_text):
         amount_str = parts[2].strip()
         import rpg_database
         return rpg_database.deposit_to_gheed(username, amount_str)
+
+    # ==========================================
+    # COMMAND 9: !create [class]
+    # ==========================================
+
+    elif command == "!fight":
+        import rpg_combat
+        return rpg_combat.execute_fight_encounter(username)
     
     return None

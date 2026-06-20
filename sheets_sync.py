@@ -7,8 +7,7 @@ GC_SESSION = None
 
 def sync_to_google_sheets():
     """ Read from local SQLite database, overwrite Data tab.
-        Handle token expirations and empty database states gracefully without crashing! :O
-    """
+        Handle token expirations and empty database states gracefully without crashing! :O """
 
     global GC_SESSION
     
