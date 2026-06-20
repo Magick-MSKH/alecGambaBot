@@ -105,12 +105,13 @@ def execute_fight_encounter(username):
     if victory:
         new_xp = xp + m_xp_reward
         new_gold = gold + gold_reward
-        cursor.execute('''
-            UPDATE characters 
-            SET xp = ?, gold = ?, current_hp = ?, stamina = ? WHERE username = ?
-        ''', (new_xp, new_gold, player_hp_sim, new_stamina, username))
+        cursor.execute('UPDATE characters SET xp = ?, gold = ?, current_hp = ?, stamina = ? WHERE username = ?', 
+                       (new_xp, new_gold, player_hp_sim, new_stamina, username))
         conn.commit()
         conn.close()
+
+        # Level-up
+        level_up_alert = rpg_database.check_and_execute_level_up(username)
         
         loot_text = f" | 🎒 Found: {loot_reward}!" if loot_reward else ""
         chat_reply = f"⚔️ VICTORY! {username} defeated a {m_name}! 🪙 Earned {gold_reward} Gold % {m_xp_reward} XP"
@@ -141,11 +142,21 @@ def execute_fight_encounter(username):
             conn_sync.close()
             
             if s_data:
-                # Mirror update directly inside back-end dashboard
-                raw_tab.update_cell(row_idx, 3, s_data[0]) # Level Column
-                raw_tab.update_cell(row_idx, 4, s_data[1]) # XP Column
-                raw_tab.update_cell(row_idx, 5, s_data[2]) # Gold Column
-                raw_tab.update_cell(row_idx, 6, s_data[3]) # Current HP Column
+                # Unpack the active row floats
+                lvl, xp, gold, cur_hp, max_hp, cur_mp, max_mp, b_str, b_dex, b_int, b_vit, b_eng = s_data
+                
+                raw_tab.update_cell(row_idx, 3, lvl)
+                raw_tab.update_cell(row_idx, 4, xp)
+                raw_tab.update_cell(row_idx, 5, gold)
+                raw_tab.update_cell(row_idx, 6, int(cur_hp))
+                raw_tab.update_cell(row_idx, 7, int(max_hp))
+                raw_tab.update_cell(row_idx, 8, int(cur_mp))
+                raw_tab.update_cell(row_idx, 9, int(max_mp))
+                raw_tab.update_cell(row_idx, 10, int(b_str))
+                raw_tab.update_cell(row_idx, 11, int(b_dex))
+                raw_tab.update_cell(row_idx, 12, int(b_int))
+                raw_tab.update_cell(row_idx, 13, int(b_vit))
+                raw_tab.update_cell(row_idx, 14, int(b_eng))
     except Exception as sheets_err:
         print(f"⚠️ [SHEETS SYNC TIMEOUT] Mirror data sync missed cell index mapping: {sheets_err}")
 

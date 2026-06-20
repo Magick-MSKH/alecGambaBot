@@ -16,16 +16,16 @@ def init_rpg_db():
             level INTEGER DEFAULT 1,
             xp INTEGER DEFAULT 0,
             gold INTEGER DEFAULT 0,
-            current_hp INTEGER,
-            max_hp INTEGER,
-            current_mp INTEGER,
-            max_mp INTEGER,
+            current_hp REAL,
+            max_hp REAL,      
+            current_mp REAL,
+            max_mp REAL,      
             stamina INTEGER DEFAULT 3,
-            base_str INTEGER,
-            base_dex INTEGER,
-            base_int INTEGER,
-            base_vit INTEGER,
-            base_eng INTEGER
+            base_str REAL,
+            base_dex REAL,
+            base_int REAL,
+            base_vit REAL,
+            base_eng REAL
         )
     ''')
 
@@ -190,3 +190,91 @@ def deposit_to_gheed(username, amount_str):
     except ValueError:
         conn.close()
         return "🕹️❌ Usage: !bank deposit [amount] or !bank deposit all"
+
+
+def fetch_class_stat_growth(class_name):
+    """
+    Connects to RPGConfig to extract level-up metrics.
+    Falls back to your precise decimal growth blueprint matrix.
+    """
+    try:
+        gc = gspread.service_account(filename="credentials.json")
+        sh = gc.open("RPGConfig")
+        worksheet = sh.worksheet("RPGConfig")
+        records = worksheet.get_all_records()
+        
+        for row in records:
+            if row.get("Class", "").strip().lower() == f"{class_name.lower()}_growth":
+                return {
+                    "hp": float(row["HP"]), "mp": float(row["MP"]),
+                    "str": float(row["STR"]), "dex": float(row["DEX"]),
+                    "int": float(row["INT"]), "vit": float(row["VIT"]), "eng": float(row["ENG"])
+                }
+    except Exception as e:
+        print(f"⚠️ [GROWTH SHEET ERROR] Falling back to precise blueprint matrix: {e}")
+
+    # Your exact blueprint data preserved with fractional parameters
+    fallbacks = {
+        "warrior":  {"hp": 1.0, "mp": 0.2, "str": 2.0,  "dex": 1.0,  "int": 0.2,  "vit": 1.0, "eng": 0.0},
+        "wizard":   {"hp": 0.5, "mp": 1.0, "str": 0.2,  "dex": 0.25, "int": 2.0,  "vit": 1.0, "eng": 2.0},
+        "archer":   {"hp": 0.5, "mp": 0.5, "str": 0.25, "dex": 2.0,  "int": 0.5,  "vit": 1.0, "eng": 1.0},
+        "valkyrie": {"hp": 0.5, "mp": 0.5, "str": 0.5,  "dex": 0.5,  "int": 0.5,  "vit": 0.5, "eng": 0.5}
+    }
+    return fallbacks.get(class_name.lower(), fallbacks["warrior"])
+
+def check_and_execute_level_up(username):
+    """
+    Checks XP boundaries, applies growth decimals, completely restores resources,
+    and returns a clean whole-integer summary announcement for stream chat.
+    """
+    conn = sqlite3.connect(RPG_DB_NAME)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT class_name, level, xp, max_hp, max_mp, base_str, base_dex, base_int, base_vit, base_eng 
+        FROM characters WHERE username = ?
+    ''', (username,))
+    row = cursor.fetchone()
+    
+    if not row:
+        conn.close()
+        return ""
+
+    c_class, lvl, xp, max_hp, max_mp, b_str, b_dex, b_int, b_vit, b_eng = row
+    xp_needed = lvl * 5
+    
+    if xp >= xp_needed:
+        new_lvl = lvl + 1
+        remaining_xp = xp - xp_needed
+        
+        growth = fetch_class_stat_growth(c_class)
+        
+        # Accumulate the fractional growth numbers cleanly in memory
+        new_max_hp = max_hp + growth["hp"]
+        new_max_mp = max_mp + growth["mp"]
+        new_str = b_str + growth["str"]
+        new_dex = b_dex + growth["dex"]
+        new_int = b_int + growth["int"]
+        new_vit = b_vit + growth["vit"]
+        new_eng = b_eng + growth["eng"]
+
+        # Save the full floats to the database, fully restoring current resources to the new ceiling
+        cursor.execute('''
+            UPDATE characters 
+            SET level = ?, xp = ?, max_hp = ?, current_hp = ?, max_mp = ?, current_mp = ?,
+                base_str = ?, base_dex = ?, base_int = ?, base_vit = ?, base_eng = ?
+            WHERE username = ?
+        ''', (new_lvl, remaining_xp, new_max_hp, new_max_hp, new_max_mp, new_max_mp,
+              new_str, new_dex, new_int, new_vit, new_eng, username))
+        conn.commit()
+        conn.close()
+        
+        # TRUNCATION: Use int() to display clean, whole integers to the chat box!
+        return (
+            f" ✨ LEVEL UP! {username} reached Level {new_lvl}! "
+            f"❤️ HP: {int(new_max_hp)} | 🔮 MP: {int(new_max_mp)} | "
+            f"💪 STR: {int(new_str)} | 🎯 DEX: {int(new_dex)} ✨"
+        )
+        
+    conn.close()
+    return ""
