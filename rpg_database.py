@@ -164,28 +164,31 @@ def deposit_to_gheed(username, amount_str):
 
     try:
         if amount_str == "all":
-            amount = database.get_balance(username)
+            points_to_spend = database.get_balance(username)
         else:
-            amount = int(amount_str)
+            points_to_spend = int(amount_str)
 
-        if amount <= 0:
+        if points_to_spend < 1000:
             conn.close()
-            return "🕹️❌ Gheed doesn't deal in empty promises."
+            return "🕹️❌ [GHEED] Hey, I don't deal in pocket lint! I only exchange a minimum of 1000 points at a time."
 
         stream_bal = database.get_balance(username)
-        if stream_bal < amount:
+        if stream_bal < points_to_spend:
             conn.close()
             return f"🕹️❌ You don't have enough channel points! Point Balance: {stream_bal:,}"
 
-        database.add_points(username, -amount)
-        cursor.execute("UPDATE characters SET gold = gold + ? WHERE username = ?", (amount, username))
+        gold_earned = points_to_spend // 1000
+        points_deducted = gold_earned * 1000
+
+        database.add_points(username, -points_deducted)
+        cursor.execute("UPDATE characters SET gold = gold + ? WHERE username = ?", (gold_earned, username))
         conn.commit()
         
         cursor.execute("SELECT gold FROM characters WHERE username = ?", (username,))
         new_gold = cursor.fetchone()[0]
         conn.close()
         
-        return f"🕹️💰 [GHEED TRANSACTION] {username} handed Gheed {amount:,} channel points. 🪙 Gheed gives {amount:,} gold pieces! Total Gold: {new_gold:,}"
+        return f"🕹️💰 [BANK TRANSACTION] {username} handed Gheed {amount:,} channel points. 🪙 Gheed gives {amount:,} gold pieces! Total Gold: {new_gold:,}"
 
     except ValueError:
         conn.close()
@@ -278,3 +281,48 @@ def check_and_execute_level_up(username):
         
     conn.close()
     return ""
+
+def rest_at_inn(username):
+    """ Charges player 2 Gold, calculates dynamic Max HP ceiling & fully heals character """
+    conn = sqlite3.connect(RPG_DB_NAME)
+    cursor = conn.cursor()
+    
+    # 1. Fetch current character stats
+    cursor.execute('''
+        SELECT class_name, gold, max_hp, base_vit 
+        FROM characters WHERE username = ?
+    ''', (username,))
+    player = cursor.fetchone()
+    
+    if not player:
+        conn.close()
+        return "❌ You don't have an active hero profile registered yet! Type !create [class] first."
+        
+    c_class, gold, max_hp, b_vit = player
+    
+    # 2. Enforce the town economy cost rule
+    inn_cost = 2
+    if gold < inn_cost:
+        conn.close()
+        return f"❌ You don't have enough gold to rest at the Inn! Akara demands {inn_cost} Gold. (Current: {gold} Gold)"
+
+    # 3. Dynamically calculate their maximum HP roof using your exact class formulas
+    import rpg_combat
+    base_stats = {
+        "max_hp": max_hp, "max_mp": 0, "str": 0, "dex": 0, "int": 0, "vit": b_vit, "eng": 0
+    }
+    # Pull the first item of the derived stats tuple (scaled_max_hp)
+    scaled_max_hp, _, _, _, _, _ = rpg_combat.calculate_derived_stats(c_class, base_stats)
+
+    # 4. Deduct the gold, maximize their current health pool, and save
+    new_gold = gold - inn_cost
+    cursor.execute('''
+        UPDATE characters 
+        SET gold = ?, current_hp = ? 
+        WHERE username = ?
+    ''', (new_gold, scaled_max_hp, username))
+    conn.commit()
+    conn.close()
+    
+    # Clean, concise whole-number output to protect chat scannability
+    return f"🛌 {username} paid {inn_cost} Gold to rest. ❤️ Wounds fully healed! HP: {int(scaled_max_hp)}/{int(scaled_max_hp)}"

@@ -265,11 +265,23 @@ def process_user_command(username, message_text):
         return rpg_database.deposit_to_gheed(username, amount_str)
 
     # ==========================================
-    # COMMAND 9: !create [class]
+    # COMMAND 9: !fight [monster]
     # ==========================================
 
     elif command == "!fight":
         import rpg_combat
         return rpg_combat.execute_fight_encounter(username)
+
+    # ==========================================
+    # COMMAND 9: !inn [option]
+    # ==========================================
+    
+    elif command == "!inn":
+        if len(parts) < 2 or parts[1].strip().lower() != "rest":
+            return "🛌 TOWN INN: Rest your weary bones and fully restore your HP! Usage: !inn rest (Costs 10 Gold)"
+            
+        import rpg_database
+        return rpg_database.rest_at_inn(username)
+
     
     return None
