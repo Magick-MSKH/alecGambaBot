@@ -127,7 +127,7 @@ class YouTubeChatSender:
                     else:
                         message_type = "membershipGIFTEvent"
 
-                badge_elem = await card.query_selector('yt-live-chat-author-badge-renderer[type="sponsor"]')
+                badge_elem = await card.query_selector('yt-live-chat-author-badge-renderer[type="member"]')
                 is_member = badge_elem is not None
 
                 new_items.append({

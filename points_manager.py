@@ -38,13 +38,15 @@ def process_incoming_message(username, message_text, message_type, details=None,
             # Apply the 1.2x multiplier if they're a channel member
             if is_member:
                 reward = int(POINTS_PER_CHAT * 1.2)
+            else:
+                reward = POINTS_PER_CHAT
 
-            database.add_points(username, POINTS_PER_CHAT)
+            database.add_points(username, reward)
             chat_cooldowns[username] = current_time
 
             # Custom terminal merker to see who is a member
             member_tag = "👑 [MEMBER]" if is_member else "👤"
-            print(f"💰 {username} earned {POINTS_PER_CHAT} points for chatting")
+            print(f"{member_tag} {username} earned {POINTS_PER_CHAT} points for chatting")
 
     # 2. Handle Super Chats
     if message_type == "superChatEvent":

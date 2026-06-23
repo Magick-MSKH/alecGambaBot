@@ -77,8 +77,32 @@ def init_db():
     
     # Init default pit with 0 points if none exists
     cursor.execute("INSERT OR IGNORE INTO money_pit (id, jackpot_total) VALUES (1, 0)")
-    conn.commit()
 
+    # Tracks master state of gamba config
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS gamba_session_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            status TEXT DEFAULT 'CLOSED', -- CLOSED, OPEN, LOCKED
+            description TEXT DEFAULT '',
+            options_csv TEXT DEFAULT '',   -- e.g. "win,lose" or "yes,no"
+            total_pool INTEGER DEFAULT 0
+        )
+    ''')
+
+    # Tracks individual live wagers locked in pool
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS gamba_active_bets (
+            username TEXT PRIMARY KEY,
+            chosen_option TEXT NOT NULL,
+            wager_amount INTEGER NOT NULL
+        )
+    ''')
+    
+    # Guarantee that default row 1 exists for the state checker tracker
+    cursor.execute("SELECT COUNT(*) FROM gamba_session_state")
+    if cursor.fetchone() == 0:
+        cursor.execute("INSERT INTO gamba_session_state (id) VALUES (1)")
+    
     conn.commit()
     conn.close()
 
@@ -125,9 +149,19 @@ def place_bet(username, amount, vote_type):
         cursor.execute("INSERT INTO bets (username, amount, vote_type) VALUES (?, ?, ?)", (username, amount, vote_type))
         # Hook Statistics into the Gamba Loop
         cursor.execute("UPDATE users SET bets_placed = bets_placed + 1 WHERE username = ?", (username,))
-
         conn.commit()
+
         return True, f"[💎] Bet placed! {amount} points on '{vote_type}'."
+
+        try:
+            cursor.execute('''
+                INSERT OR REPLACE INTO gamba_active_bets (username, chosen_option, wager_amount)
+                VALUES (?, ?, ?)
+            ''', (username, vote, amount))
+            cursor.execute("UPDATE gamba_session_state SET total_pool = total_pool + ? WHERE id = 1", (amount,))
+        except Exception as e:
+            print(f"⚠️ Crash recorder sync warning: {e}")
+    
     except Exception as e:
         conn.rollback()
         return False, f"Error: {str(e)}"
@@ -362,5 +396,83 @@ def reset_pit():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute("UPDATE money_pit SET jackpot_total = 0 WHERE id = 1")
+    conn.commit()
+    conn.close()
+
+def save_gamba_session(status, description, options_list):
+    """ Mirrors top-level active gambling phase straight into SQLite RAM backup """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    options_csv = ",".join(options_list)
+    cursor.execute('''
+        UPDATE gamba_session_state 
+        SET status = ?, description = ?, options_csv = ?, total_pool = 0 
+        WHERE id = 1
+    ''', (status, description, options_csv))
+    # Clear leftover legacy bets from previous pool
+    cursor.execute("DELETE FROM gamba_active_bets")
+    conn.commit()
+    conn.close()
+
+def record_live_bet(username, option, amount):
+    """ Locks individual user's point stake into persistent backup """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO gamba_active_bets (username, chosen_option, wager_amount)
+        VALUES (?, ?, ?)
+    ''', (username, option, amount))
+    cursor.execute("UPDATE gamba_session_state SET total_pool = total_pool + ? WHERE id = 1", (amount,))
+    conn.commit()
+    conn.close()
+
+def clear_persistent_gamba():
+    """ Wipes recovery ledger once gamba payout loop finishes """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE gamba_session_state SET status = 'CLOSED', total_pool = 0 WHERE id = 1")
+    cursor.execute("DELETE FROM gamba_active_bets")
+    conn.commit()
+    conn.close()
+
+def recover_gamba_session_from_crash():
+    """ Queries database to rebuild global dictionary state & player pools instantly upon unexpected bot boot script reload """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT status, description, options_csv FROM gamba_session_state WHERE id = 1")
+    state_row = cursor.fetchone()
+    
+    if not state_row or state_row[0] == 'CLOSED':
+        conn.close()
+        return None
+        
+    status, description, options_csv = state_row
+    options_list = options_csv.split(",") if options_csv else []
+    
+    # Fetch all live bets that were recorded before the crash
+    cursor.execute("SELECT username, chosen_option, wager_amount FROM gamba_active_bets")
+    bet_rows = cursor.fetchall()
+    conn.close()
+    
+    return {
+        "status": status,
+        "description": description,
+        "options": options_list,
+        "bets": bet_rows
+    }
+
+def mirror_gamba_session_state(status, description, options_list):
+    """ Saves top-level active gambling phase into SQLite backup table.
+        Clears leftover legacy wagers from previous round automatically """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    options_csv = ",".join(options_list) if options_list else ""
+    cursor.execute('''
+        UPDATE gamba_session_state 
+        SET status = ?, description = ?, options_csv = ?, total_pool = 0 
+        WHERE id = 1
+    ''', (status, description, options_csv))
+    cursor.execute("DELETE FROM gamba_active_bets")
     conn.commit()
     conn.close()

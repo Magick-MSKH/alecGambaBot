@@ -25,9 +25,12 @@ async def run_bot_async():
     else:
         print("📋 Daily Claim flags unchanged")
 
-    ###################################################
-    # 0a. Prompt for Video ID dynamically via stdin
-    ###################################################
+    admin_manager.check_and_execute_boot_recovery()
+
+    ###########################################
+    # Prompt for Video ID dynamically via stdin
+    ###########################################
+
     print("=" * 30)
     VIDEO_ID = input("👉 Enter YouTube Stream ID: ").strip()
     print("=" * 30)
@@ -87,7 +90,7 @@ async def run_bot_async():
                 if message_type == "textMessageEvent":
                     print(f"💬 [LIVE_WINDOW] {username}: {message_text}")
                     
-                    bot_reply = command_manager.process_user_command(username, message_text)
+                    bot_reply = command_manager.process_user_command(username, message_text, is_member)
                     if bot_reply and isinstance(bot_reply, str):
                         await sender.send_message(bot_reply)
                         continue
@@ -119,7 +122,6 @@ async def run_bot_async():
                     NEW_MEMBER_BONUS = 2500
                     print(f"👑 [MEMBERSHIP UPGRADE] {username} supported the channel!")
                     database.add_points(username, NEW_MEMBER_BONUS)
-#                   await sender.send_message(f"👑 ~~~~Membership text here~~~~ ")
                     sheets_sync.sync_to_google_sheets()
                     continue
 

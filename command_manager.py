@@ -4,10 +4,9 @@ import database
 
 PIT_COOLDOWN_TRACKER = {}
 
-def process_user_command(username, message_text):
+def process_user_command(username, message_text, is_member=False):
     """ Parse public user chat commands.
-        Return STR message if command is triggered, otherwise Return None
-    """
+        Return STR message if command is triggered, otherwise return None """
 
     parts = message_text.strip().split()
     if not parts:
@@ -86,19 +85,29 @@ def process_user_command(username, message_text):
     # COMMAND 7: !daily
     # ==========================================
     elif command in ["!daily", "!bonus", "!check_in"]:
-        DAILY_REWARD = 500
         try:
+            print(f"🐞[DEBUG] Received User: {username} | Passed is_member flag: {is_member} (Type: {type(is_member)})")
             if database.check_daily_claimed(username):
                 return f"⚠️ {username} , you have already claimed your bonus points for this stream."
             
+            if is_member is True:
+                DAILY_REWARD = 1000
+            else:
+                DAILY_REWARD = 500
+
+            print(f"🐞[DEBUG] Allocating reward size: {DAILY_REWARD} points to {username}")
+
             database.add_points(username, DAILY_REWARD)
             database.record_daily_claim(username)
 
             new_balance = database.get_balance(username)
-            return f"🎁 {username} claimed their bonus {DAILY_REWARD} points for this stream."
+            if is_member:
+                return f"🎁 {username} claimed their member bonus {DAILY_REWARD} points."
+            else:
+                return f"🎁 {username} claimed their bonus {DAILY_REWARD} points."
 
         except Exception as e:
-            return f"❌ Error claiming daily points: {str(e)}"
+            return f"❌ Error claiming !daily: {str(e)}"
 
     # ==========================================
     # COMMAND 7: !goal
