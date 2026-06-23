@@ -152,7 +152,10 @@ async def run_bot_async():
                             print(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
                             
                             if amount_str in ["all", "allin", "all-in"] and success:
-                                await sender.send_message(f"🐦‍🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🐦‍🔥")
+                                if amount < 1000:
+                                    await sender.send_message(f"💤 {username} is going all-in with a measly {amount:,} points on '{vote}'")
+                                else:
+                                    await sender.send_message(f"🐦‍🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🐦‍🔥")
                             elif amount_str == "half":
                                 await sender.send_message(f"🔥 {username} just wagered HALF of their points ({amount:,}) on '{vote}'! 🔥")
                         except ValueError:

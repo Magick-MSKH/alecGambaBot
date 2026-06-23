@@ -220,14 +220,13 @@ def process_user_command(username, message_text, is_member=False):
             # FIXED (INDEXING): Target index 1 to parse wager string safely
             amount_str = parts[1].strip()
             
-            if amount_str in ["all", "max"]:
+            if amount_str == "all":
                 amount = database.get_balance(username)
             elif amount_str == "half":
                 amount = int(database.get_balance(username) / 2)
             else:
                 amount = int(amount_str)
 
-            # Minimum of 100 points
             if amount < 100:
                 return "❌ A Minimum of 100 points must be thrown into the pit."
 
