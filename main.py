@@ -4,6 +4,7 @@ import asyncio
 import pytchat
 import database
 import sheets_sync
+import rpg_database
 import admin_manager
 import points_manager
 import command_manager
@@ -16,6 +17,7 @@ IS_BOT_RUNNING = True
 async def run_bot_async():
     # Init SQLite tables
     database.init_db()
+    rpg_database.init_rpg_db()
     clear_db = input("💽 Clear Daily Claims? (Y/N): ")
     if not clear_db:
         print("❌ Error: Input cannot be empty.")

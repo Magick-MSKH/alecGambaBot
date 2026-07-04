@@ -37,7 +37,7 @@ def process_incoming_message(username, message_text, message_type, details=None,
             
             # Apply the 1.2x multiplier if they're a channel member
             if is_member:
-                reward = int(POINTS_PER_CHAT * 1.2)
+                reward = int(POINTS_PER_CHAT * 2)
             else:
                 reward = POINTS_PER_CHAT
 

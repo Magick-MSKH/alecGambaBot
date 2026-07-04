@@ -246,9 +246,21 @@ def process_user_command(username, message_text, is_member=False):
             if roll == 777:
                 database.add_points(username, fresh_jackpot)
                 database.reset_pit()
-                return f"🎰 JACKPOT! {username} rolled 7️⃣7️⃣7️⃣ and secured the entire pool of {fresh_jackpot:,} points!"
+                return f"🎰 JACKPOT! {username} rolled 7️⃣7️⃣7️⃣ and won all {fresh_jackpot:,} points!"
+            elif roll == 333:
+                database.add_to_pit(fresh_jackpot)
+                fresh_jackpot = database.get_pit_total() # Renew pit total
+                return f"🪽 Masekah descends to bless the pit. The pool is doubled to {fresh_jackpot:,} points!"
+            elif roll == 666:
+                database.add_to_pit(-amount)
+                fresh_jackpot = database.get_pit_total() # Renew pit total
+                return f"😈 Lilith grabs {username} 's points and sets them ablaze!🔥 The pit total remains unchanged at {fresh_jackpot}!"
+            elif roll == 999:
+                database.add_to_pit(999)
+                fresh_jackpot = database.get_pit_total()
+                return f"🎰 9️⃣9️⃣9️⃣ special! 999 bonus points have been added to the pit! New total: {fresh_jackpot} points."
             else:
-                return f"🕳️ {username} threw {amount:,} points into the money pit! The roll was {roll} . Current Pit Value: {fresh_jackpot:,} points!"
+                return f"🕳️ {username} threw {amount:,} points into the money pit! The roll was {roll}. Current Pit Value: {fresh_jackpot:,} points!"
 
         except ValueError:
             return "❌ Error: Specify an Integer, 'half', or 'all' to throw into the pit."
