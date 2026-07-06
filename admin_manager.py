@@ -1,10 +1,10 @@
 import database
 import admin_manager
 
-ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCkYwhjg79txij8wDA-Jiv5Q", "UCncmqSbJ6bm6EekhTvwf-nw"] # @magicmskh, @barelyalec, @notalecprobably, @larrryft @xddkai
+ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCr9EAyXltNes4Km4iqYmLcg"] # @magicmskh, @barelyalec, @notalecprobably, @bunnyisdreaming6081
 
 IS_BETTING_OPEN = False
-IS_BETTING_LOCKED = False  
+IS_BETTING_LOCKED = False
 VALID_OPTIONS = []
 CURRENT_QUESTION = ""
 
@@ -25,8 +25,7 @@ def process_admin_command(sender_id, sender_name, message_text):
     
     is_admin_name = (
         "magickmskh" in s_name_clean or
-        "larrryft" in s_name_clean or
-        "xddkai" in s_name_clean or
+        "bunnyisdreaming" in s_name_clean or
         "consoleadmin" in s_name_clean or
         "barelyalec" in s_name_clean or
         "notalecprobably" in s_name_clean
