@@ -15,7 +15,7 @@ def process_user_command(username, message_text, is_member=False):
     command = parts[0].lower()
 
     # ==========================================
-    # COMMAND 1: !balance
+    # COMMAND: !balance
     # ==========================================
     if command in ["!balance", "!points", "!cash"]:
         try:
@@ -25,7 +25,7 @@ def process_user_command(username, message_text, is_member=False):
             return f"❌ ERROR Checking balance: {str(e)}"
 
     # ==========================================
-    # COMMAND 2: !leaderboard
+    # COMMAND: !leaderboard
     # ==========================================
     elif command in ["!leaderboard", "!richest", "!top"]:
         try:
@@ -43,7 +43,7 @@ def process_user_command(username, message_text, is_member=False):
             return f"❌ Error loading leaderboard: {str(e)}"
 
     # ==========================================
-    # COMMAND 3: !current_gamba
+    # COMMAND: !current_gamba
     # ==========================================
 
     elif command in ["!current_gamba", "!current_bet", "!gamba_info", "!pool"]:
@@ -55,7 +55,7 @@ def process_user_command(username, message_text, is_member=False):
             return f"❌ Error fetching pool data: {str(e)}"
 
     # ==========================================
-    # COMMAND 4: !stats
+    # COMMAND: !stats
     # ==========================================
     elif command in ["!stats", "!profile", "!gamba_stats"]:
         stats = database.get_player_stats(username)
@@ -66,7 +66,7 @@ def process_user_command(username, message_text, is_member=False):
             return f"📊 {username}: {points} pts | Bets: {placed} (🏆{won}W /❌{lost}L) | Personal Peak: {peak} pts"
 
     # ==========================================
-    # COMMAND 5: !record
+    # COMMAND: !record
     # ==========================================
     elif command in ["!record", "!peak", "!halloffame"]:
         record = database.get_all_time_peak_record()
@@ -76,13 +76,13 @@ def process_user_command(username, message_text, is_member=False):
         return f"👑 ALL-TIME RECORD: {record_holder} achieved a peak of {record_points} points! 🔥"
 
     # ==========================================
-    # COMMAND 6: !help
+    # COMMAND: !help
     # ==========================================
     elif command in ["!help", "!commands"]:
         return "🤖 For a full list of commands, please check the Discord!"
 
     # ==========================================
-    # COMMAND 7: !daily
+    # COMMAND: !daily
     # ==========================================
     elif command in ["!daily", "!bonus", "!check_in"]:
         try:
@@ -90,12 +90,11 @@ def process_user_command(username, message_text, is_member=False):
             if database.check_daily_claimed(username):
                 return f"⚠️ {username} , you have already claimed your bonus points for this stream."
             
-            if is_member is True:
-                DAILY_REWARD = 1000
-            else:
-                DAILY_REWARD = 500
+            DAILY_REWARD = 1000 if is_member else 500
+            prestige_mult = database.get_user_prestige_multiplier(username)
+            DAILY_REWARD *= prestige_mult
 
-            print(f"🐞[DEBUG] Allocating reward size: {DAILY_REWARD} points to {username}")
+#           print(f"🐞[DEBUG] Allocating reward size: {DAILY_REWARD} points to {username}")
 
             database.add_points(username, DAILY_REWARD)
             database.record_daily_claim(username)
@@ -110,7 +109,7 @@ def process_user_command(username, message_text, is_member=False):
             return f"❌ Error claiming !daily: {str(e)}"
 
     # ==========================================
-    # COMMAND 7: !goal
+    # COMMAND: !goal
     # ==========================================
     elif command in ["!goal", "!current_goal", "!pointgoal"]:
         goal_data = database.get_active_goal()
@@ -128,7 +127,7 @@ def process_user_command(username, message_text, is_member=False):
         return f"🎯 CURRENT GOAL: {goal_name} | {bar} ({percent}%) | 📊 Progress: {current:,} / {needed:,} points redeemed!"
 
     # ==========================================
-    # COMMAND 7: !redeem
+    # COMMAND: !redeem
     # ==========================================
     elif command == "!redeem":
         if len(parts) < 2:
@@ -187,19 +186,7 @@ def process_user_command(username, message_text, is_member=False):
                 return "❌ Error: Specify a valid whole number of points to redeem."
 
     # ==========================================
-    # COMMAND 8: !battle // CURRENTLY DISABLED
-    # ==========================================
-
-#   elif command == "!battle":
-#       try:
-#           import battle_manager
-#           battle_reply = battle_manager.process_battle_command(username, parts)
-#           return battle_reply
-#       except Exception as e:
-#           return f"❌ Error in Battle Engine: {str(e)}"
-
-    # ==========================================
-    # COMMAND 9: !pit
+    # COMMAND: !pit
     # ==========================================
 
     elif command in ["!pit", "!throw", "!void"]:
@@ -265,7 +252,42 @@ def process_user_command(username, message_text, is_member=False):
             return "❌ Error: Specify an Integer, 'half', or 'all' to throw into the pit."
 
     # ==========================================
-    # COMMAND 9: !create [class] // DISABLED, MOVED TO RPG_ENGINE
+    # COMMAND: !prestige
+    # ==========================================
+
+    elif command == "!prestige":
+        import database
+        res = database.execute_user_prestige(username)
+        
+        if res["status"] == "NOT_FOUND":
+            return f"[ERROR] {username} USERNAME NOT FOUND."
+            
+        elif res["status"] == "MAX_CAP":
+            return f"[ERROR] {username} IS AT THE MAXIMUM LEVEL."
+            
+        elif res["status"] == "LOW_POINTS":
+            return f"[ERROR] {username} NOT ENOUGH POINTS"
+            
+        return f"⬆️ {username} PRESTIGE LEVEL INCREASED TO {res['new_level']}! NEW MULTIPLIER: {res['multiplier']}x"
+
+
+
+    
+    # ==========================================
+    # COMMAND: !battle // CURRENTLY DISABLED
+    # ==========================================
+
+#   elif command == "!battle":
+#       try:
+#           import battle_manager
+#           battle_reply = battle_manager.process_battle_command(username, parts)
+#           return battle_reply
+#       except Exception as e:
+#           return f"❌ Error in Battle Engine: {str(e)}"
+
+
+    # ==========================================
+    # COMMAND: !create [class] // DISABLED, MOVED TO RPG_ENGINE
     # ==========================================
 
 #   elif command == "!create":
@@ -284,7 +306,7 @@ def process_user_command(username, message_text, is_member=False):
 #       return rpg_database.deposit_to_gheed(username, amount_str)
 
     # ==========================================
-    # COMMAND 9: !fight [monster] // DISABLED, MOVED TO RPG_ENGINE
+    # COMMAND: !fight [monster] // DISABLED, MOVED TO RPG_ENGINE
     # ==========================================
 
 #   elif command == "!fight":
@@ -292,7 +314,7 @@ def process_user_command(username, message_text, is_member=False):
 #       return rpg_combat.execute_fight_encounter(username)
 
     # ==========================================
-    # COMMAND 9: !inn [option] // DISABLED, MOVED TO RPG_ENGINE
+    # COMMAND: !inn [option] // DISABLED, MOVED TO RPG_ENGINE
     # ==========================================
     
 #   elif command == "!inn":

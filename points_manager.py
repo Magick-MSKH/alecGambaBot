@@ -35,11 +35,14 @@ def process_incoming_message(username, message_text, message_type, details=None,
             # Calculate base points
             reward = POINTS_PER_CHAT
             
-            # Apply the 1.2x multiplier if they're a channel member
+            # Apply the 2x multiplier if they're a channel member
             if is_member:
                 reward = int(POINTS_PER_CHAT * 2)
             else:
                 reward = POINTS_PER_CHAT
+
+            prestige_mult = database.get_user_prestige_multiplier(username)
+            reward *= prestige_mult
 
             database.add_points(username, reward)
             chat_cooldowns[username] = current_time

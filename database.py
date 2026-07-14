@@ -20,7 +20,8 @@ def init_db():
             bets_won INTEGER DEFAULT 0,
             bets_lost INTEGER DEFAULT 0,
             highest_peak INTEGER DEFAULT 1000,
-            discord_username TEXT DEFAULT NULL
+            discord_username TEXT DEFAULT NULL,
+            prestige_level INTEGER DEFAULT 0
         )
     ''')
 
@@ -501,3 +502,65 @@ def get_youtube_handle_from_discord(discord_name):
     row = cursor.fetchone()
     conn.close()
     return row[0] if row else None
+
+PRESTIGE_LOOKUP_TABLE = {
+    0: {"cost": 100000,  "multiplier": 2}, # Level 0 -> 1: Cost = 100k, Rewards * 2;
+    1: {"cost": 500000,  "multiplier": 3}, # Level 1 -> 2: Cost = 500k, Rewards * 3;
+    2: {"cost": 1000000, "multiplier": 4}, # Level 2 -> 3: Cost = 1Mil, Rewards * 4;
+    3: {"cost": 2000000, "multiplier": 5}, # Level 3 -> 4: Cost = 2Mil, Rewards * 5;
+    4: {"cost": 5000000, "multiplier": 6}  # Level 4 -> 5: Cost = 5Mil, Rewards * 6;
+}
+
+def execute_user_prestige(username):
+    """ Validate user points, wipe active balance, increment Prestige Rank, return new level """
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT points, prestige_level FROM users WHERE LOWER(username) = LOWER(?)", (username.strip(),))
+    row = cursor.fetchone()
+
+    if not row:
+        conn.close()
+        return {"status": "NOT_FOUND"}
+    
+    current_points, current_level = row
+    if current_level >= 5:
+        conn.close()
+        return {"status": "MAX_CAP"}
+    
+    target_tier = PRESTIGE_LOOKUP_TABLE[current_level]
+    required_points = target_tier["cost"]
+
+    if current_points < required_points:
+        conn.close()
+        return {"status": "LOW_POINTS", "needed": required_points}
+
+    new_level = current_level + 1
+
+    cursor.execute('''
+        UPDATE users
+        SET points = 0, prestige_level = ?
+        WHERE LOWER(username) = LOWER(?)
+    ''', (new_level, username.strip()))
+
+    conn.commit()
+    conn.close()
+
+    return {"status": "SUCCESS", "new_level": new_level, "multiplier": target_tier["multiplier"]}
+
+def get_prestige_level(username):
+    """ Get player prestige level to apply point multiplier inquiries """
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
+    cursor = conn.cursor()
+    cursor.execute("SELECT prestige_level FROM users WHERE LOWER(username) = LOWER(?)", (username.strip(),))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if now and row[0] else 0
+
+def get_user_prestige_level(username):
+    """ Used for point multiplier calculations """
+    current_level = get_prestige_level(username)
+    if current_level == 0:
+        return 1
+    
+    return PRESTIGE_LOOKUP_TABLE[current_level - 1]["multiplier"]
