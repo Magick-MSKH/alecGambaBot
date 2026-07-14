@@ -1,3 +1,4 @@
+import sys
 import time
 import httpx
 import asyncio
@@ -17,7 +18,11 @@ IS_BOT_RUNNING = True
 async def run_bot_async():
     # Init SQLite tables
     database.init_db()
-    rpg_database.init_rpg_db()
+#   rpg_database.init_rpg_db() --Moving this feature to Discord
+
+    ##########################
+    ### Clear Daily Claims ###
+    ##########################
     clear_db = input("💽 Clear Daily Claims? (Y/N): ")
     if not clear_db:
         print("❌ Error: Input cannot be empty.")
@@ -27,11 +32,26 @@ async def run_bot_async():
     else:
         print("📋 Daily Claim flags unchanged")
 
-    admin_manager.check_and_execute_boot_recovery()
+    #####################
+    ### Stream Select ###
+    #####################
+    print("🖥️ STREAM PROFILE INIT 🖥️")
+    stream_choice = input("Select Stream Profile: ").strip().upper()
+    if stream_choice == "A":
+        PROFILE_SUFFIX = "alec"
+        channel_name = "Alec"
+    elif stream_choice == "S":
+        PROFILE_SUFFIX = "sample"
+        channel_name = "Sample"
+    elif stream_choice == "C":
+        PROFILE_SUFFIX = "chicken"
+        channel_name = "Chickeninja42"
+    else:
+        print("❌ Invalid selection! Defaulting to Alec profile...")
+        PROFILE_SUFFIX = "alec"
+        channel_name = "Alec"
 
-    ###########################################
-    # Prompt for Video ID dynamically via stdin
-    ###########################################
+    admin_manager.check_and_execute_boot_recovery()
 
     print("=" * 30)
     VIDEO_ID = input("👉 Enter YouTube Stream ID: ").strip()
@@ -43,7 +63,7 @@ async def run_bot_async():
 
     STREAM_URL = f"https://youtube.com/live_chat?v={VIDEO_ID}"
 
-    sender = YouTubeChatSender(STREAM_URL)
+    sender = YouTubeChatSender(STREAM_URL, profile_name=PROFILE_SUFFIX)
     await sender.start()
 
     input("\n👉 Press ENTER when browser has loaded...")
@@ -147,6 +167,9 @@ async def run_bot_async():
                             
                             if amount <= 0:
                                 continue
+                            
+                            if admin_manager.ACTIVE_GAMBA_CAP is not None and amount > admin_manager.ACTIVE_GAMBA_CAP:
+                                amount = admin_manager.ACTIVE_GAMBA_CAP
 
                             success, gamba_msg = database.place_bet(username, amount, vote)
                             if not gamba_msg:

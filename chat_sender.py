@@ -3,8 +3,9 @@ import asyncio
 from playwright.async_api import async_playwright
 
 class YouTubeChatSender:
-    def __init__(self, live_url):
+    def __init__(self, live_url, profile_name="default"):
         self.live_url = live_url
+        self.profile_suffix = profile_name
         self.browser = None
         self.page = None
         self.playwright = None
@@ -23,7 +24,7 @@ class YouTubeChatSender:
         ]
         
         self.browser = await self.playwright.chromium.launch_persistent_context(
-            user_data_dir="./user_data",
+            user_data_dir=f"C:\\workspace\\alecGambaBot\\user_data_{self.profile_suffix}",
             headless=False,
             channel="chrome",
             args=stealth_args,

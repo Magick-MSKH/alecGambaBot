@@ -59,7 +59,7 @@ def fetch_current_world_parameters():
     """ Connects to RPGWorldState to read live environmental control cells.
         Returns current_act, current_group """
     try:
-        gc = gspread.service_account(filename="credentials.json")
+        gc = gspread.service_account(filename="sheets_credentials.json")
         sh = gc.open("RPGConfig")
         world_tab = sh.worksheet("RPGWorldState")
         
@@ -99,7 +99,7 @@ def fetch_filtered_area_enemies():
     
     # Check live sheets table rows first (allowing dynamic edits), otherwise route to fallback groups
     try:
-        gc = gspread.service_account(filename="credentials.json")
+        gc = gspread.service_account(filename="sheets_credentials.json")
         sh = gc.open("RPGConfig")
         worksheet = sh.get_worksheet(0)
         records = worksheet.get_all_records()

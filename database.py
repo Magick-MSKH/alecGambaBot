@@ -8,7 +8,7 @@ DB_NAME = "gamba_bot.db"
 
 def init_db():
     """ Creates the database and tables with advanced stat tracking columns """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
     # Updated USERS table (w/ stat counters!)
@@ -19,7 +19,8 @@ def init_db():
             bets_placed INTEGER DEFAULT 0,
             bets_won INTEGER DEFAULT 0,
             bets_lost INTEGER DEFAULT 0,
-            highest_peak INTEGER DEFAULT 1000
+            highest_peak INTEGER DEFAULT 1000,
+            discord_username TEXT DEFAULT NULL
         )
     ''')
 
@@ -108,7 +109,7 @@ def init_db():
 
 def get_balance(username):
     """ Gets a user's current balance. Registers them with full stat tracking columns if new """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
     cursor.execute("SELECT points FROM users WHERE username = ?", (username,))
@@ -134,7 +135,7 @@ def place_bet(username, amount, vote_type):
     if balance < amount:
         return False, f"❌ You only have {balance} points!"
     
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
     try:
@@ -170,7 +171,7 @@ def place_bet(username, amount, vote_type):
 
 def resolve_bets(winning_type):
     """Pays out winners, logs win/loss stats, updates peaks, and clears pool cleanly."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     
     try:
@@ -213,7 +214,7 @@ def add_points(username, amount):
     # Calling get_balance ensures they exist in the DB (Database) first
     get_balance(username)
 
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET points = points + ? WHERE username = ?", (amount, username))
     conn.commit()
@@ -226,7 +227,7 @@ def add_points_to_multiple(usernames, amount):
     """ Efficiently gives passive points to a list of active users at once """
     if not usernames:
         return
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
     # Safely format (?, ?, ?) for SQL mass update
@@ -237,7 +238,7 @@ def add_points_to_multiple(usernames, amount):
 
 def cancel_and_refund_bets():
     """ Cancels the current betting round and returns all points to the users """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
     try:
@@ -266,7 +267,7 @@ def cancel_and_refund_bets():
 
 def get_top_users(limit=5):
     """ Fetches the top X richets players from the database """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
     cursor.execute("SELECT username, points FROM users ORDER BY points DESC LIMIT ?", (limit,))
@@ -277,7 +278,7 @@ def get_top_users(limit=5):
 
 def add_points_to_all_registered(amount):
     """ Adds an arbitrary amount of points to every user stored in the db """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
     # Update every single row in the users table simultaneously
@@ -288,7 +289,7 @@ def add_points_to_all_registered(amount):
 
 def update_peak_balance(username):
     """ Checks if current points beat the user's previous high score """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET highest_peak = points WHERE username = ? AND points > highest_peak", (username,))
     conn.commit()
@@ -296,7 +297,7 @@ def update_peak_balance(username):
 
 def get_player_stats(username):
     """ Fetches full stat card details for a sepcific viewer """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
     cursor.execute("SELECT points, bets_placed, bets_won, bets_lost, highest_peak FROM users WHERE username = ?", (username,))
@@ -311,7 +312,7 @@ def get_player_stats(username):
 
 def get_all_time_peak_record():
     """ Finds the absolute highest points record ever held in the database and who achieved it """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT username, highest_peak FROM users ORDER BY highest_peak DESC LIMIT 1")
     row = cursor.fetchone()
@@ -320,7 +321,7 @@ def get_all_time_peak_record():
 
 def check_daily_claimed(username):
     """ Checks if user already claimed their daily points """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM daily_claims WHERE username = ?", (username,))
     row = cursor.fetchone()
@@ -329,7 +330,7 @@ def check_daily_claimed(username):
 
 def record_daily_claim(username):
     """ Log user's daily claim into session table """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("INSERT OR IGNORE INTO daily_claims (username) VALUES (?)", (username,))
     conn.commit()
@@ -337,7 +338,7 @@ def record_daily_claim(username):
 
 def clear_daily_claims():
     """ Wipe session table on bot start """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM daily_claims")
     conn.commit()
@@ -345,7 +346,7 @@ def clear_daily_claims():
 
 def get_active_goal():
     """ Fetches current goal data """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT goal_name, points_needed, points_contributed FROM global_goals LIMIT 1")
     row = cursor.fetchone()
@@ -354,7 +355,7 @@ def get_active_goal():
 
 def contribute_to_goal(amount):
     """ INC current active goal """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE global_goals SET points_contributed = points_contributed + ?", (amount,))
     conn.commit()
@@ -362,7 +363,7 @@ def contribute_to_goal(amount):
 
 def set_new_global_goal(new_name, points_needed):
     """ Wipes the old goal and inserts a fresh community challenge line """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     # Wipe the existing active row
     cursor.execute("DELETE FROM global_goals")
@@ -376,7 +377,7 @@ def set_new_global_goal(new_name, points_needed):
 
 def get_pit_total():
     """ Fetches the current point balance inside the money pit """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT jackpot_total FROM money_pit WHERE id = 1")
     row = cursor.fetchone()
@@ -385,7 +386,7 @@ def get_pit_total():
 
 def add_to_pit(amount):
     """ Increments the global money pit pool """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE money_pit SET jackpot_total = jackpot_total + ? WHERE id = 1", (amount,))
     conn.commit()
@@ -393,7 +394,7 @@ def add_to_pit(amount):
 
 def reset_pit():
     """ Wipes the money pit to an empty slate """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE money_pit SET jackpot_total = 0 WHERE id = 1")
     conn.commit()
@@ -401,7 +402,7 @@ def reset_pit():
 
 def save_gamba_session(status, description, options_list):
     """ Mirrors top-level active gambling phase straight into SQLite RAM backup """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     options_csv = ",".join(options_list)
     cursor.execute('''
@@ -416,7 +417,7 @@ def save_gamba_session(status, description, options_list):
 
 def record_live_bet(username, option, amount):
     """ Locks individual user's point stake into persistent backup """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute('''
         INSERT OR REPLACE INTO gamba_active_bets (username, chosen_option, wager_amount)
@@ -428,7 +429,7 @@ def record_live_bet(username, option, amount):
 
 def clear_persistent_gamba():
     """ Wipes recovery ledger once gamba payout loop finishes """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE gamba_session_state SET status = 'CLOSED', total_pool = 0 WHERE id = 1")
     cursor.execute("DELETE FROM gamba_active_bets")
@@ -437,7 +438,7 @@ def clear_persistent_gamba():
 
 def recover_gamba_session_from_crash():
     """ Queries database to rebuild global dictionary state & player pools instantly upon unexpected bot boot script reload """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     
     cursor.execute("SELECT status, description, options_csv FROM gamba_session_state WHERE id = 1")
@@ -465,7 +466,7 @@ def recover_gamba_session_from_crash():
 def mirror_gamba_session_state(status, description, options_list):
     """ Saves top-level active gambling phase into SQLite backup table.
         Clears leftover legacy wagers from previous round automatically """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     options_csv = ",".join(options_list) if options_list else ""
     cursor.execute('''
@@ -476,3 +477,27 @@ def mirror_gamba_session_state(status, description, options_list):
     cursor.execute("DELETE FROM gamba_active_bets")
     conn.commit()
     conn.close()
+
+def link_discord_username(youtube_handle, discord_name):
+    """ Binds Discord username to YT Username """
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
+    cursor = conn.cursor()
+    yt = youtube_handle.strip()
+    ds = discord_name.strip().lower
+
+    cursor.execute("UPDATE users SET discord_username = ? WHERE LOWER(username) = LOWER(?)", (ds,yt))
+    changes = conn.total_changes
+    conn.commit()
+    conn.close()
+    return changes > 0
+
+def get_youtube_handle_from_discord(discord_name):
+    """ Lookup table to determine YT & DC handles. Returns YT username string if found, else None """
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
+    cursor = conn.cursor()
+    ds = discord_name.strip().lower()
+
+    cursor.execute("SELECT username FROM users WHERE LOWER(discord_username) = ?", (ds,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else None

@@ -6,7 +6,8 @@ ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRA
 IS_BETTING_OPEN = False
 IS_BETTING_LOCKED = False
 VALID_OPTIONS = []
-CURRENT_QUESTION = ""
+#CURRENT_QUESTION = ""
+ACTIVE_GAMBA_CAP = None
 
 def process_admin_command(sender_id, sender_name, message_text):
     """ Parses chat messages from stream admins to manage betting states manually """
@@ -43,19 +44,29 @@ def process_admin_command(sender_id, sender_name, message_text):
     if command == "!gamba_open":
         if len(parts) < 3:
             return "⚠️ Usage: !gamba_open [option1,option2] [Question text...]"
-        
         if IS_BETTING_OPEN:
             return f"⚠️ A betting round is already active: '{CURRENT_QUESTION}'"
-
-        VALID_OPTIONS = [opt.strip().lower() for opt in parts[1].split(",")]
-        CURRENT_QUESTION = " ".join(parts[2:])
         
+        options_raw = parts[1].strip()
+        description_raw = " ".join(parts[2:])
+        point_cap_str = parts[-1].strip()
+        active_cap = None
+        if point_cap_str.isdigit():
+            active_cap = int(point_cap_str)
+            description_raw = " ".join(parts[2:-1])
+
+        VALID_OPTIONS = [opt.strip().lower() for opt in options_raw.split(",")]
+#       CURRENT_QUESTION = " ".join(parts[2:])       
         IS_BETTING_OPEN = True
         IS_BETTING_LOCKED = False
+        ACTIVE_GAMBA_CAP = active_cap
 
-        database.mirror_gamba_session_state("OPEN", admin_manager.CURRENT_QUESTION, admin_manager.VALID_OPTIONS)
+        database.mirror_gamba_session_state("OPEN", description_raw, VALID_OPTIONS, active_cap)
         
-        return f"🎰 BETTING OPENED! 🎰 | ❓: {CURRENT_QUESTION} | 📋 Choices: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount|all|half] [choice] to play!"
+        if ACTIVE_GAMBA_CAP == None:
+            return f"🎰 BETTING OPENED! 🎰 | ❓: {CURRENT_QUESTION} | 📋 Choices: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount|all|half] [choice] to play!"
+        else:
+            return f"🎰 BETTING OPENED! 🎰 | ❓: {CURRENT_QUESTION} | 📋 Choices: {', '.join(VALID_OPTIONS)} | 👉 Bets are capped at {ACTIVE_GAMBA_CAP} points!"
 
     # ==========================================
     # COMMAND 2: !gamba_lock

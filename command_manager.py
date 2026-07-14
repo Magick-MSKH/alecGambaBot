@@ -79,7 +79,7 @@ def process_user_command(username, message_text, is_member=False):
     # COMMAND 6: !help
     # ==========================================
     elif command in ["!help", "!commands"]:
-        return "🤖 How to gamba: !gamba [amount] [vote], For more info check the Discord!"
+        return "🤖 For a full list of commands, please check the Discord!"
 
     # ==========================================
     # COMMAND 7: !daily
@@ -187,16 +187,16 @@ def process_user_command(username, message_text, is_member=False):
                 return "❌ Error: Specify a valid whole number of points to redeem."
 
     # ==========================================
-    # COMMAND 8: !battle
+    # COMMAND 8: !battle // CURRENTLY DISABLED
     # ==========================================
 
-    elif command == "!battle":
-        try:
-            import battle_manager
-            battle_reply = battle_manager.process_battle_command(username, parts)
-            return battle_reply
-        except Exception as e:
-            return f"❌ Error in Battle Engine: {str(e)}"
+#   elif command == "!battle":
+#       try:
+#           import battle_manager
+#           battle_reply = battle_manager.process_battle_command(username, parts)
+#           return battle_reply
+#       except Exception as e:
+#           return f"❌ Error in Battle Engine: {str(e)}"
 
     # ==========================================
     # COMMAND 9: !pit
@@ -217,7 +217,6 @@ def process_user_command(username, message_text, is_member=False):
                 return f"🤖⏳ {username} , You have a {minutes}m {seconds}s cooldown on this command."
 
         try:
-            # FIXED (INDEXING): Target index 1 to parse wager string safely
             amount_str = parts[1].strip()
             
             if amount_str == "all":
@@ -266,42 +265,41 @@ def process_user_command(username, message_text, is_member=False):
             return "❌ Error: Specify an Integer, 'half', or 'all' to throw into the pit."
 
     # ==========================================
-    # COMMAND 9: !create [class]
+    # COMMAND 9: !create [class] // DISABLED, MOVED TO RPG_ENGINE
     # ==========================================
 
-    elif command == "!create":
-        if len(parts) < 2:
-            return "⚔️ Usage: !create [Warrior/Wizard/Archer/Valkyrie] | Entry costs 5,000 points!"
-        chosen_class = parts[1].strip()
-        import rpg_database
-        return rpg_database.register_new_character(username, chosen_class)
-
-    elif command == "!bank":
-        if len(parts) < 3 or parts[1].strip().lower() != "deposit":
-            return "💰 GHEED'S BANK: Exchange channel points for RPG gold! Usage: !bank deposit [amount]"
-        
-        amount_str = parts[2].strip()
-        import rpg_database
-        return rpg_database.deposit_to_gheed(username, amount_str)
-
-    # ==========================================
-    # COMMAND 9: !fight [monster]
-    # ==========================================
-
-    elif command == "!fight":
-        import rpg_combat
-        return rpg_combat.execute_fight_encounter(username)
+#   elif command == "!create":
+#       if len(parts) < 2:
+#           return "⚔️ Usage: !create [Warrior/Wizard/Archer/Valkyrie] | Entry costs 5,000 points!"
+#       chosen_class = parts[1].strip()
+#       import rpg_database
+#       return rpg_database.register_new_character(username, chosen_class)
+#
+#   elif command == "!bank":
+#       if len(parts) < 3 or parts[1].strip().lower() != "deposit":
+#           return "💰 GHEED'S BANK: Exchange channel points for RPG gold! Usage: !bank deposit [amount]"
+#       
+#       amount_str = parts[2].strip()
+#       import rpg_database
+#       return rpg_database.deposit_to_gheed(username, amount_str)
 
     # ==========================================
-    # COMMAND 9: !inn [option]
+    # COMMAND 9: !fight [monster] // DISABLED, MOVED TO RPG_ENGINE
+    # ==========================================
+
+#   elif command == "!fight":
+#       import rpg_combat
+#       return rpg_combat.execute_fight_encounter(username)
+
+    # ==========================================
+    # COMMAND 9: !inn [option] // DISABLED, MOVED TO RPG_ENGINE
     # ==========================================
     
-    elif command == "!inn":
-        if len(parts) < 2 or parts[1].strip().lower() != "rest":
-            return "🛌 TOWN INN: Rest your weary bones and fully restore your HP! Usage: !inn rest (Costs 10 Gold)"
-            
-        import rpg_database
-        return rpg_database.rest_at_inn(username)
+#   elif command == "!inn":
+#       if len(parts) < 2 or parts[1].strip().lower() != "rest":
+#           return "🛌 TOWN INN: Rest your weary bones and fully restore your HP! Usage: !inn rest (Costs 10 Gold)"
+#           
+#       import rpg_database
+#       return rpg_database.rest_at_inn(username)
 
-    
     return None

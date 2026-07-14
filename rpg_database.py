@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import gspread
 import database
@@ -69,37 +70,48 @@ def init_rpg_db():
 
 def fetch_class_base_stats(class_name):
     try:
-        gc = gspread.service_account(filename="credentials.json")
-        sh = gc.open("RPGConfig")
-        worksheet = sh.get_worksheet(0)
-        records = worksheet.get_all_records()
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        credentials_path = os.path.join(base_dir, "sheets_credentials.json")
+
+        gc = gspread.service_account(filename=credentials_path)
+        sh = gc.open("Alec Stream Gamba Leaderboard")
+        worksheet = sh.worksheet("RPGConfig") 
         
-        for row in records:
-            if row["Class"].strip().lower() == class_name.strip().lower():
+        raw_rows = worksheet.get_all_values()
+        
+        for row in raw_rows[1:5]:
+            # Safety check: Ignore empty rows entirely
+            if not row or len(row) < 8: 
+                continue
+            
+            if str(row[0]).strip().lower() == class_name.strip().lower():
+                
+                def safe_int(val):
+                    val_str = str(val).strip()
+                    return int(val_str) if val_str.isdigit() else 0
+
                 return {
-                    "hp": int(row["HP"]),
-                    "mp": int(row["MP"]),
-                    "str": int(row["STR"]),
-                    "dex": int(row["DEX"]),
-                    "int": int(row["INT"]),
-                    "vit": int(row["VIT"]),
-                    "eng": int(row["ENG"])
+                    "hp":  safe_int(row[1]),  # Column B
+                    "mp":  safe_int(row[2]),  # Column C
+                    "str": safe_int(row[3]),  # Column D
+                    "dex": safe_int(row[4]),  # Column E
+                    "int": safe_int(row[5]),  # Column F
+                    "vit": safe_int(row[6]),  # Column G
+                    "eng": safe_int(row[7])   # Column H
                 }
+                
     except Exception as e:
-        print(f"🕹️⚠️ [SHEETS ERROR] Failed to fetch stats: {e}.")
-    
-    fallback_stats = {
-        "warrior": {"hp": 10, "mp": 0, "str": 7, "dex": 4, "int": 2, "vit": 5, "eng": 2},
-        "wizard":  {"hp": 8, "mp": 5, "str": 1, "dex": 3, "int": 7, "vit": 3, "eng": 6},
-        "archer":  {"hp": 8, "mp": 4, "str": 3, "dex": 8, "int": 2, "vit": 3, "eng": 4},
-        "valkyrie":{"hp": 6, "mp": 6, "str": 4, "dex": 4, "int": 4, "vit": 4, "eng": 4}
-    }
-    return fallback_stats.get(class_name.lower(), fallback_stats["Class"])
+        import traceback
+        print(f"⚠️ [CONFIG CRITICAL] Sheet extraction bypass warning: {e}")
+        print(traceback.format_exc()) # Explicitly logs the exact line number if a crash occurs
+        
+    return None
+
 
 def register_new_character(username, chosen_class):
     valid_classes = ["warrior", "wizard", "archer", "valkyrie"]
     if chosen_class.lower() not in valid_classes:
-        return f"🕹️❌ Unknown class! Available classes: Warrior, Wizard, Archer, Valkyrie."
+        return f"🕹️❌ Unknown class! Available: Warrior, Wizard, Archer, Valkyrie."
 
     conn = sqlite3.connect(RPG_DB_NAME)
     cursor = conn.cursor()
@@ -116,6 +128,9 @@ def register_new_character(username, chosen_class):
 
     # Read independent flat HP/MP and attributes directly from the sheet
     stats = fetch_class_base_stats(chosen_class)
+    if not stats:
+        conn.close()
+        return "[ERROR]: Could not load class stats from spreadsheet!"
 
     database.add_points(username, -creation_cost)
     
@@ -134,8 +149,10 @@ def register_new_character(username, chosen_class):
     conn.commit()
     conn.close()
 
+    return "SUCCESS" # Status Flag
+
     try:
-        gc = gspread.service_account(filename="credentials.json")
+        gc = gspread.service_account(filename="sheets_credentials.json")
         sh = gc.open("RPGConfig")
         worksheet = sh.worksheet("RPGRawCharData")
         
@@ -196,12 +213,9 @@ def deposit_to_gheed(username, amount_str):
 
 
 def fetch_class_stat_growth(class_name):
-    """
-    Connects to RPGConfig to extract level-up metrics.
-    Falls back to your precise decimal growth blueprint matrix.
-    """
+    """ Connects to RPGConfig to extract level-up metrics """
     try:
-        gc = gspread.service_account(filename="credentials.json")
+        gc = gspread.service_account(filename="sheets_credentials.json")
         sh = gc.open("RPGConfig")
         worksheet = sh.worksheet("RPGConfig")
         records = worksheet.get_all_records()
