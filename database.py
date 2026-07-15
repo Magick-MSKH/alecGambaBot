@@ -7,7 +7,6 @@ import sqlite3
 DB_NAME = "gamba_bot.db"
 
 def init_db():
-    """ Creates the database and tables with advanced stat tracking columns """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
@@ -109,7 +108,6 @@ def init_db():
     conn.close()
 
 def get_balance(username):
-    """ Gets a user's current balance. Registers them with full stat tracking columns if new """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
@@ -130,7 +128,6 @@ def get_balance(username):
     return balance
 
 def place_bet(username, amount, vote_type):
-    """ Deduces points and logs a bet if the user has enough currency """
     balance = get_balance(username)
 
     if balance < amount:
@@ -151,18 +148,17 @@ def place_bet(username, amount, vote_type):
         cursor.execute("INSERT INTO bets (username, amount, vote_type) VALUES (?, ?, ?)", (username, amount, vote_type))
         # Hook Statistics into the Gamba Loop
         cursor.execute("UPDATE users SET bets_placed = bets_placed + 1 WHERE username = ?", (username,))
-        conn.commit()
-
-        return True, f"[💎] Bet placed! {amount} points on '{vote_type}'."
-
+        
         try:
             cursor.execute('''
                 INSERT OR REPLACE INTO gamba_active_bets (username, chosen_option, wager_amount)
                 VALUES (?, ?, ?)
-            ''', (username, vote, amount))
+            ''', (username, vote_type, amount))
             cursor.execute("UPDATE gamba_session_state SET total_pool = total_pool + ? WHERE id = 1", (amount,))
         except Exception as e:
             print(f"⚠️ Crash recorder sync warning: {e}")
+
+        return True, f"[💎] Bet placed! {amount} points on '{vote_type}'."
     
     except Exception as e:
         conn.rollback()
@@ -171,7 +167,6 @@ def place_bet(username, amount, vote_type):
         conn.close()
 
 def resolve_bets(winning_type):
-    """Pays out winners, logs win/loss stats, updates peaks, and clears pool cleanly."""
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     
@@ -211,7 +206,6 @@ def resolve_bets(winning_type):
 
 
 def add_points(username, amount):
-    """ Adds (or subtracts) points for a specific user """
     # Calling get_balance ensures they exist in the DB (Database) first
     get_balance(username)
 
@@ -225,7 +219,6 @@ def add_points(username, amount):
     update_peak_balance(username)
 
 def add_points_to_multiple(usernames, amount):
-    """ Efficiently gives passive points to a list of active users at once """
     if not usernames:
         return
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
@@ -238,7 +231,6 @@ def add_points_to_multiple(usernames, amount):
     conn.close()
 
 def cancel_and_refund_bets():
-    """ Cancels the current betting round and returns all points to the users """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
@@ -267,7 +259,6 @@ def cancel_and_refund_bets():
         conn.close()
 
 def get_top_users(limit=5):
-    """ Fetches the top X richets players from the database """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
@@ -278,7 +269,6 @@ def get_top_users(limit=5):
     return top_users
 
 def add_points_to_all_registered(amount):
-    """ Adds an arbitrary amount of points to every user stored in the db """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
@@ -289,7 +279,6 @@ def add_points_to_all_registered(amount):
     conn.close()
 
 def update_peak_balance(username):
-    """ Checks if current points beat the user's previous high score """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET highest_peak = points WHERE username = ? AND points > highest_peak", (username,))
@@ -297,7 +286,6 @@ def update_peak_balance(username):
     conn.close()
 
 def get_player_stats(username):
-    """ Fetches full stat card details for a sepcific viewer """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
@@ -312,7 +300,6 @@ def get_player_stats(username):
     return row
 
 def get_all_time_peak_record():
-    """ Finds the absolute highest points record ever held in the database and who achieved it """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT username, highest_peak FROM users ORDER BY highest_peak DESC LIMIT 1")
@@ -321,7 +308,6 @@ def get_all_time_peak_record():
     return row
 
 def check_daily_claimed(username):
-    """ Checks if user already claimed their daily points """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM daily_claims WHERE username = ?", (username,))
@@ -330,7 +316,6 @@ def check_daily_claimed(username):
     return row is not None
 
 def record_daily_claim(username):
-    """ Log user's daily claim into session table """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("INSERT OR IGNORE INTO daily_claims (username) VALUES (?)", (username,))
@@ -338,7 +323,6 @@ def record_daily_claim(username):
     conn.close()
 
 def clear_daily_claims():
-    """ Wipe session table on bot start """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM daily_claims")
@@ -346,7 +330,6 @@ def clear_daily_claims():
     conn.close()
 
 def get_active_goal():
-    """ Fetches current goal data """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT goal_name, points_needed, points_contributed FROM global_goals LIMIT 1")
@@ -355,7 +338,6 @@ def get_active_goal():
     return row
 
 def contribute_to_goal(amount):
-    """ INC current active goal """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE global_goals SET points_contributed = points_contributed + ?", (amount,))
@@ -363,7 +345,6 @@ def contribute_to_goal(amount):
     conn.close()
 
 def set_new_global_goal(new_name, points_needed):
-    """ Wipes the old goal and inserts a fresh community challenge line """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     # Wipe the existing active row
@@ -377,7 +358,6 @@ def set_new_global_goal(new_name, points_needed):
     conn.close()
 
 def get_pit_total():
-    """ Fetches the current point balance inside the money pit """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT jackpot_total FROM money_pit WHERE id = 1")
@@ -386,7 +366,6 @@ def get_pit_total():
     return row[0] if row else 0
 
 def add_to_pit(amount):
-    """ Increments the global money pit pool """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE money_pit SET jackpot_total = jackpot_total + ? WHERE id = 1", (amount,))
@@ -394,7 +373,6 @@ def add_to_pit(amount):
     conn.close()
 
 def reset_pit():
-    """ Wipes the money pit to an empty slate """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE money_pit SET jackpot_total = 0 WHERE id = 1")
@@ -402,7 +380,6 @@ def reset_pit():
     conn.close()
 
 def save_gamba_session(status, description, options_list):
-    """ Mirrors top-level active gambling phase straight into SQLite RAM backup """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     options_csv = ",".join(options_list)
@@ -417,7 +394,6 @@ def save_gamba_session(status, description, options_list):
     conn.close()
 
 def record_live_bet(username, option, amount):
-    """ Locks individual user's point stake into persistent backup """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute('''
@@ -429,7 +405,6 @@ def record_live_bet(username, option, amount):
     conn.close()
 
 def clear_persistent_gamba():
-    """ Wipes recovery ledger once gamba payout loop finishes """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("UPDATE gamba_session_state SET status = 'CLOSED', total_pool = 0 WHERE id = 1")
@@ -438,7 +413,6 @@ def clear_persistent_gamba():
     conn.close()
 
 def recover_gamba_session_from_crash():
-    """ Queries database to rebuild global dictionary state & player pools instantly upon unexpected bot boot script reload """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     
@@ -464,9 +438,7 @@ def recover_gamba_session_from_crash():
         "bets": bet_rows
     }
 
-def mirror_gamba_session_state(status, description, options_list):
-    """ Saves top-level active gambling phase into SQLite backup table.
-        Clears leftover legacy wagers from previous round automatically """
+def mirror_gamba_session_state(status, description, options_list, active_cap):
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     options_csv = ",".join(options_list) if options_list else ""
@@ -480,7 +452,6 @@ def mirror_gamba_session_state(status, description, options_list):
     conn.close()
 
 def link_discord_username(youtube_handle, discord_name):
-    """ Binds Discord username to YT Username """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     yt = youtube_handle.strip()
@@ -493,7 +464,6 @@ def link_discord_username(youtube_handle, discord_name):
     return changes > 0
 
 def get_youtube_handle_from_discord(discord_name):
-    """ Lookup table to determine YT & DC handles. Returns YT username string if found, else None """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     ds = discord_name.strip().lower()
@@ -512,7 +482,6 @@ PRESTIGE_LOOKUP_TABLE = {
 }
 
 def execute_user_prestige(username):
-    """ Validate user points, wipe active balance, increment Prestige Rank, return new level """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
@@ -549,16 +518,14 @@ def execute_user_prestige(username):
     return {"status": "SUCCESS", "new_level": new_level, "multiplier": target_tier["multiplier"]}
 
 def get_prestige_level(username):
-    """ Get player prestige level to apply point multiplier inquiries """
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
     cursor.execute("SELECT prestige_level FROM users WHERE LOWER(username) = LOWER(?)", (username.strip(),))
     row = cursor.fetchone()
     conn.close()
-    return row[0] if now and row[0] else 0
+    return row[0] if row and row[0] else 0
 
-def get_user_prestige_level(username):
-    """ Used for point multiplier calculations """
+def get_user_prestige_multiplier(username):
     current_level = get_prestige_level(username)
     if current_level == 0:
         return 1

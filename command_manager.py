@@ -1,13 +1,11 @@
 import time
 import random
 import database
+import admin_manager
 
 PIT_COOLDOWN_TRACKER = {}
 
 def process_user_command(username, message_text, is_member=False):
-    """ Parse public user chat commands.
-        Return STR message if command is triggered, otherwise return None """
-
     parts = message_text.strip().split()
     if not parts:
         return None
@@ -48,7 +46,6 @@ def process_user_command(username, message_text, is_member=False):
 
     elif command in ["!current_gamba", "!current_bet", "!gamba_info", "!pool"]:
         try:
-            import admin_manager
             pool_info = admin_manager.get_current_pool_info()
             return pool_info
         except Exception as e:
@@ -256,7 +253,6 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
 
     elif command == "!prestige":
-        import database
         res = database.execute_user_prestige(username)
         
         if res["status"] == "NOT_FOUND":
@@ -269,59 +265,5 @@ def process_user_command(username, message_text, is_member=False):
             return f"[ERROR] {username} NOT ENOUGH POINTS"
             
         return f"⬆️ {username} PRESTIGE LEVEL INCREASED TO {res['new_level']}! NEW MULTIPLIER: {res['multiplier']}x"
-
-
-
-    
-    # ==========================================
-    # COMMAND: !battle // CURRENTLY DISABLED
-    # ==========================================
-
-#   elif command == "!battle":
-#       try:
-#           import battle_manager
-#           battle_reply = battle_manager.process_battle_command(username, parts)
-#           return battle_reply
-#       except Exception as e:
-#           return f"❌ Error in Battle Engine: {str(e)}"
-
-
-    # ==========================================
-    # COMMAND: !create [class] // DISABLED, MOVED TO RPG_ENGINE
-    # ==========================================
-
-#   elif command == "!create":
-#       if len(parts) < 2:
-#           return "⚔️ Usage: !create [Warrior/Wizard/Archer/Valkyrie] | Entry costs 5,000 points!"
-#       chosen_class = parts[1].strip()
-#       import rpg_database
-#       return rpg_database.register_new_character(username, chosen_class)
-#
-#   elif command == "!bank":
-#       if len(parts) < 3 or parts[1].strip().lower() != "deposit":
-#           return "💰 GHEED'S BANK: Exchange channel points for RPG gold! Usage: !bank deposit [amount]"
-#       
-#       amount_str = parts[2].strip()
-#       import rpg_database
-#       return rpg_database.deposit_to_gheed(username, amount_str)
-
-    # ==========================================
-    # COMMAND: !fight [monster] // DISABLED, MOVED TO RPG_ENGINE
-    # ==========================================
-
-#   elif command == "!fight":
-#       import rpg_combat
-#       return rpg_combat.execute_fight_encounter(username)
-
-    # ==========================================
-    # COMMAND: !inn [option] // DISABLED, MOVED TO RPG_ENGINE
-    # ==========================================
-    
-#   elif command == "!inn":
-#       if len(parts) < 2 or parts[1].strip().lower() != "rest":
-#           return "🛌 TOWN INN: Rest your weary bones and fully restore your HP! Usage: !inn rest (Costs 10 Gold)"
-#           
-#       import rpg_database
-#       return rpg_database.rest_at_inn(username)
 
     return None

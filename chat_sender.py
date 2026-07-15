@@ -12,7 +12,6 @@ class YouTubeChatSender:
         self.seen_message_ids = set()
 
     async def start(self):
-        """Launches a persistent browser window so you can log in once manually."""
         print("\n🌐 Opening a dedicated browser window for chat output...")
         self.playwright = await async_playwright().start()
 
@@ -56,7 +55,6 @@ class YouTubeChatSender:
             print(f"⚠️ Failed to seed initial chat history: {e}")
 
     async def get_new_messages(self):
-        """Scrapes new live chat messages directly off the Chrome screen window natively."""
         new_items = []
         try:
             # Locate all active chat message render blocks currently on screen
@@ -148,7 +146,6 @@ class YouTubeChatSender:
         return new_items
 
     async def send_message(self, text):
-        """Finds the YouTube pop-out chat box, types the response, and presses Enter."""
         try:
             chat_input_selector = 'div#input[contenteditable="true"], yt-live-chat-text-input-field-renderer div#input'
             await self.page.wait_for_selector(chat_input_selector, timeout=5000)
@@ -161,7 +158,6 @@ class YouTubeChatSender:
             print(f"❌ Failed to send message to YouTube window: {e}")
 
     async def stop(self):
-        """Safely winds down the browser context asynchronously with zero warnings."""
         print("🛑 Closing automated browser window context...")
         try:
             if self.browser: await self.browser.close()
@@ -171,7 +167,6 @@ class YouTubeChatSender:
         except Exception: pass
 
     async def get_formatted_cookies(self):
-        """ Extract active browser session cookies and format them for httpx client """
         try:
             playwright_cookies = await self.browser.cookies()
             formatted_cookies = {}

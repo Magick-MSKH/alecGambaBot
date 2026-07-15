@@ -14,8 +14,6 @@ active_viewers = {}
 chat_cooldowns = {}
 
 def process_incoming_message(username, message_text, message_type, details=None, is_member=False):
-    """ Process points behind the scenes """
-
     if "magickbot0" in username.lower():
         return
     
@@ -88,9 +86,6 @@ def process_incoming_message(username, message_text, message_type, details=None,
         sheets_sync.sync_to_google_sheets()
     
 def DistributePassivePoints():
-    """ Call this function on a timer loop (Example: Once every 5 min).
-        Gives points to anyone who interacted in the last 15 minutes. 
-        Gives Members 1.2x passive points. """
     current_time = time.time()
     still_active = []
 

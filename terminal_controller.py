@@ -7,10 +7,6 @@ import sheets_sync
 SENDER_OBJECT = None
 
 async def check_terminal_input():
-    """
-    Natively monitors the Windows VS Code terminal for admin commands.
-    Bypasses asyncio handle blocks and relays messages to the live stream.
-    """
     global SENDER_OBJECT
     
     print("⌨️  Terminal Controller Active: You can type admin commands here anytime!")

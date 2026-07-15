@@ -6,7 +6,6 @@ import database
 RPG_DB_NAME = "rpg_engine.db"
 
 def init_rpg_db():
-    """ Initializes the structural table schemas for the modular RPG engine """
     conn = sqlite3.connect(RPG_DB_NAME)
     cursor = conn.cursor()
 
@@ -169,7 +168,6 @@ def register_new_character(username, chosen_class):
     return f"🕹️📃 CLASS REGISTERED! {username} paid {creation_cost:,} points and rose as a Level 1 {chosen_class.capitalize()}!"
 
 def deposit_to_gheed(username, amount_str):
-    """ Converts channel points into Gold via Gheed """
     conn = sqlite3.connect(RPG_DB_NAME)
     cursor = conn.cursor()
     
@@ -213,7 +211,6 @@ def deposit_to_gheed(username, amount_str):
 
 
 def fetch_class_stat_growth(class_name):
-    """ Connects to RPGConfig to extract level-up metrics """
     try:
         gc = gspread.service_account(filename="sheets_credentials.json")
         sh = gc.open("RPGConfig")
@@ -240,10 +237,6 @@ def fetch_class_stat_growth(class_name):
     return fallbacks.get(class_name.lower(), fallbacks["warrior"])
 
 def check_and_execute_level_up(username):
-    """
-    Checks XP boundaries, applies growth decimals, completely restores resources,
-    and returns a clean whole-integer summary announcement for stream chat.
-    """
     conn = sqlite3.connect(RPG_DB_NAME)
     cursor = conn.cursor()
     
@@ -297,7 +290,6 @@ def check_and_execute_level_up(username):
     return ""
 
 def rest_at_inn(username):
-    """ Charges player 2 Gold, calculates dynamic Max HP ceiling & fully heals character """
     conn = sqlite3.connect(RPG_DB_NAME)
     cursor = conn.cursor()
     

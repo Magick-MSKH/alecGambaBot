@@ -6,7 +6,6 @@ import database
 GC_SESSION = None
 
 def sync_to_google_sheets():
-    """ Read from local SQLite database, overwrite Data tab """
     global GC_SESSION
     
     try:

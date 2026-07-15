@@ -16,7 +16,6 @@ ACTIVE_BATTLE = {
 GLOBAL_BATTLE_COOLDOWN = 0
 
 def abort_battle():
-    """ Forcefully resets the entire battle function """
     global ACTIVE_BATTLE
     ACTIVE_BATTLE = {
         "status": "IDLE",
@@ -30,8 +29,6 @@ def abort_battle():
     }
 
 def process_battle_command(username, parts):
-    """ Manages multi-step battle sequence """
-    
     global ACTIVE_BATTLE, GLOBAL_BATTLE_COOLDOWN
     current_time = time.time()
 

@@ -1,3 +1,5 @@
+import sheets_sync
+import sqlite3
 import database
 import admin_manager
 
@@ -6,11 +8,10 @@ ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRA
 IS_BETTING_OPEN = False
 IS_BETTING_LOCKED = False
 VALID_OPTIONS = []
-#CURRENT_QUESTION = ""
+CURRENT_QUESTION = ""
 ACTIVE_GAMBA_CAP = None
 
 def process_admin_command(sender_id, sender_name, message_text):
-    """ Parses chat messages from stream admins to manage betting states manually """
     global IS_BETTING_OPEN, IS_BETTING_LOCKED, VALID_OPTIONS, CURRENT_QUESTION
 
     if not message_text or not message_text.startswith("!"):
@@ -37,36 +38,40 @@ def process_admin_command(sender_id, sender_name, message_text):
     if not is_authorized:
         return None
 
-    # ==========================================
-    # COMMAND 1: !gamba_open [option1,option2] [Question text...]
-    # ==========================================
+    # ===========================================================================
+    # COMMAND 1: !gamba_open [option1,option2] [Question text...] [Cap amount]
+    # ===========================================================================
 
     if command == "!gamba_open":
-        if len(parts) < 3:
-            return "⚠️ Usage: !gamba_open [option1,option2] [Question text...]"
-        if IS_BETTING_OPEN:
-            return f"⚠️ A betting round is already active: '{CURRENT_QUESTION}'"
+        global ACTIVE_GAMBA_CAP, VALID_OPTIONS, IS_BETTING_OPEN, IS_BETTING_LOCKED
+
+        raw_words = [word.strip() for word in message_text.split() if word.strip()]
+        if len(raw_words) < 3:
+            return "⚠️ Usage: !gamba_open [option1,option2] [Question text...] (Betting Cap)"
         
-        options_raw = parts[1].strip()
-        description_raw = " ".join(parts[2:])
-        point_cap_str = parts[-1].strip()
+        options_raw = raw_words[1]
+        final_word = raw_words[-1]
         active_cap = None
-        if point_cap_str.isdigit():
-            active_cap = int(point_cap_str)
-            description_raw = " ".join(parts[2:-1])
+
+        if final_word.isdigit():
+            active_cap = int(final_word)
+            description_words = raw_words[2:-1]
+        else:
+            description_words = raw_words[2:]
+        
+        description_raw = " ".join(description_words)
 
         VALID_OPTIONS = [opt.strip().lower() for opt in options_raw.split(",")]
-#       CURRENT_QUESTION = " ".join(parts[2:])       
         IS_BETTING_OPEN = True
         IS_BETTING_LOCKED = False
         ACTIVE_GAMBA_CAP = active_cap
 
         database.mirror_gamba_session_state("OPEN", description_raw, VALID_OPTIONS, active_cap)
-        
+
         if ACTIVE_GAMBA_CAP == None:
-            return f"🎰 BETTING OPENED! 🎰 | ❓: {CURRENT_QUESTION} | 📋 Choices: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount|all|half] [choice] to play!"
+            return f"🎰 BETTING OPENED! 🎰 | ❓:{description_raw} | 📋Choices: {VALID_OPTIONS} | 👉Type !gamba [amount|all|half] [choice] to play!"
         else:
-            return f"🎰 BETTING OPENED! 🎰 | ❓: {CURRENT_QUESTION} | 📋 Choices: {', '.join(VALID_OPTIONS)} | 👉 Bets are capped at {ACTIVE_GAMBA_CAP} points!"
+            return f"🎰 BETTING OPENED! 🎰 | ❓:{description_raw} | 📋Choices: {VALID_OPTIONS} | 👉Bets are capped at {active_cap:,} points!"
 
     # ==========================================
     # COMMAND 2: !gamba_lock
@@ -80,7 +85,7 @@ def process_admin_command(sender_id, sender_name, message_text):
 
         IS_BETTING_LOCKED = True
 
-        database.mirror_gamba_session_state("LOCKED", admin_manager.CURRENT_QUESTION, admin_manager.VALID_OPTIONS)
+        database.mirror_gamba_session_state("LOCKED", admin_manager.CURRENT_QUESTION, admin_manager.VALID_OPTIONS, admin_manager.ACTIVE_GAMBA_CAP)
 
         return "🔒 TIME IS UP! Betting is now officially LOCKED. No more entries will be accepted! 🔒"
 
@@ -160,7 +165,6 @@ def process_admin_command(sender_id, sender_name, message_text):
             database.add_points_to_all_registered(amount)
 
             # Trigger immediate Google Sheets sync so the leaderboard updates
-            import sheets_sync
             sheets_sync.sync_to_google_sheets()
 
             return f"🎉 Giving {amount} points to ALL users! 🎁"
@@ -181,7 +185,6 @@ def process_admin_command(sender_id, sender_name, message_text):
         target_username = parts[1]
         try:
             database.add_points(target_username, 0) 
-            import sqlite3
             conn = sqlite3.connect(database.DB_NAME)
             cursor = conn.cursor()
             cursor.execute("UPDATE users SET points = 1000 WHERE username = ?", (target_username,))
@@ -220,30 +223,18 @@ def process_admin_command(sender_id, sender_name, message_text):
         except Exception as e:
             return f"🐞 [DEBUG] Error setting goal: {e}"
 
-    # ==========================================
-    # COMMAND 9: !battle_abort
-    # ==========================================
-
-    elif command == "!battle_abort":
-        import battle_manager
-        battle_manager.abort_battle()
-        return "⚔️  [ADMIN INTERVENTION] The active battle sequence has been forcefully terminated, and the arena table has been reset! 🛑"
-
     return None
 
 def get_current_pool_info():
-    """ Returns a formatted string of the active betting pool for public checks """
     if not IS_BETTING_OPEN:
         return "🎲 No active betting pool is open right now."
 
     if IS_BETTING_LOCKED:
         return (f"🎰 ACTIVE POOL 🔒LOCKED!: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)}")
     else:
-        return (f"🎰 ACTIVE POOL 🟢OPEN!: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Type !gamba [amount] [option] to play!")
+        return (f"🎰 ACTIVE POOL 🟢OPEN!: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Bets capped at {ACTIVE_GAMBA_CAP}")
 
 def check_and_execute_boot_recovery():
-    """ Runs automatically on script launch. If a crash occurrs mid-gamba,
-        memory flags are rebuilt & active tables are re-populated """
 #   global IS_BETTING_OPEN, IS_BETTING_LOCKED, VALID_OPTIONS
     
     recovered = database.recover_gamba_session_from_crash()

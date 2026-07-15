@@ -6,8 +6,6 @@ import database
 import rpg_database
 
 def calculate_derived_stats(class_name, base_stats):
-    """ Applies class-specific attribute scaling matrices to base stats.
-        Returns max_hp, max_mp, attack_power, defense, magic_attack, extra_attack_chance """
     c_type = class_name.lower().strip()
     
     # 1. Unpack raw integer attributes from SQLite player profile row
@@ -56,8 +54,6 @@ def calculate_derived_stats(class_name, base_stats):
     return hp_base, mp_base, attack_power, defense, magic_attack, extra_attack_chance
 
 def fetch_current_world_parameters():
-    """ Connects to RPGWorldState to read live environmental control cells.
-        Returns current_act, current_group """
     try:
         gc = gspread.service_account(filename="sheets_credentials.json")
         sh = gc.open("RPGConfig")
@@ -73,8 +69,6 @@ def fetch_current_world_parameters():
         return "Act I", "Group 1" # Safety net rock-solid fallback defaults
 
 def fetch_filtered_area_enemies():
-    """ Fetches the full monster ledger from RPGConfig and returns exactly 
-        the 3 progressive enemies matching the spreadsheet's active location """
     # Grab administrative cell parameters
     active_act, active_group = fetch_current_world_parameters()
     
@@ -126,8 +120,6 @@ def fetch_filtered_area_enemies():
     return act_1_matrix.get(active_group.lower(), act_1_matrix["group 1"])
 
 def execute_fight_encounter(username):
-    """ Spends stamina, refolds dynamic attribute scaling values, runs pre-battle 
-        MP auto-refills, and executes the combat turn simulator engine """
     conn = sqlite3.connect(rpg_database.RPG_DB_NAME)
     cursor = conn.cursor()
     

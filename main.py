@@ -153,10 +153,11 @@ async def run_bot_async():
                     parts = message_text.split()
                     if len(parts) >= 3:
                         try:
+                            was_capped = False
                             amount_str = parts[1].lower()
                             vote = parts[2].lower()
-                            if vote not in admin_manager.VALID_OPTIONS: continue
-
+                            if vote not in admin_manager.VALID_OPTIONS:
+                                continue
                             if amount_str in ["all", "allin", "all-in"]:
                                 amount = database.get_balance(username)
                             elif amount_str == "half":
@@ -167,24 +168,31 @@ async def run_bot_async():
                             
                             if amount <= 0:
                                 continue
-                            
-                            if admin_manager.ACTIVE_GAMBA_CAP is not None and amount > admin_manager.ACTIVE_GAMBA_CAP:
-                                amount = admin_manager.ACTIVE_GAMBA_CAP
+
+                            print(f"🔍 [CAP DEBUG] User Wager: {amount} (Type: {type(amount)}) | Active Cap: {admin_manager.ACTIVE_GAMBA_CAP} (Type: {type(admin_manager.ACTIVE_GAMBA_CAP)})")
+
+                            if admin_manager.ACTIVE_GAMBA_CAP is not None:
+                                if amount > admin_manager.ACTIVE_GAMBA_CAP:
+                                    amount = admin_manager.ACTIVE_GAMBA_CAP
+                                    was_capped = True
+                                    print(f"🔒 [CAP APPLIED] Successfully forced amount down to: {amount}")
 
                             success, gamba_msg = database.place_bet(username, amount, vote)
                             if not gamba_msg:
                                 gamba_msg = "Bet rejected."
                             print(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
-                            
-                            if amount_str in ["all", "allin", "all-in"] and success:
+
+                            if success and was_capped:
+                                await sender.send_message(f"🔒 {username}'s bet exceeded the limit and was capped at {amount:,} points on '{vote}'.")
+                            elif amount_str in ["all", "allin", "all-in"] and success:
                                 if amount < 1000:
                                     await sender.send_message(f"💤 {username} is going all-in with a measly {amount:,} points on '{vote}'")
                                 else:
                                     await sender.send_message(f"🐦‍🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🐦‍🔥")
-                            elif amount_str == "half":
+                            elif amount_str == "half" and success:
                                 await sender.send_message(f"🔥 {username} just wagered HALF of their points ({amount:,}) on '{vote}'! 🔥")
-                        except ValueError:
-                            pass
+                        except Exception as e:
+                            print(f"❌ [GAMBA LOOP ERROR]: {e}")
 
             await asyncio.sleep(1)
 
@@ -198,7 +206,6 @@ async def run_bot_async():
     await sender.stop()
 
 def run_bot():
-    """Root execution gate to handle manual system exits explicitly on Windows."""
     try:
         asyncio.run(run_bot_async())
     except (KeyboardInterrupt, SystemExit):
