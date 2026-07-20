@@ -151,6 +151,10 @@ def process_user_command(username, message_text, is_member=False):
         elif sub_command == "goal":
             if len(parts) < 3:
                 return "🤖 Specify an amount! Example: !redeem goal 100"
+            if "barelyalec" in username.lower():
+                return f"Sorry, {username} You can't contribute to your own stream goal!"
+            if "notalecprobably" in username.lower():
+                return f"Sorry, {username} You can't contribute to your own stream goal!"
             try:
                 amount = int(parts[2])
                 if amount <= 0:

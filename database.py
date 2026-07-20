@@ -137,16 +137,13 @@ def place_bet(username, amount, vote_type):
     cursor = conn.cursor()
 
     try:
-        # Check if they already have an active bet
         cursor.execute("SELECT amount FROM bets WHERE username =?", (username,))
         if cursor.fetchone():
+            conn.close()
             return False, "❌ You already have an active bet!"
         
-        # Deduct points from user
         cursor.execute("UPDATE users SET points = points - ? WHERE username = ?", (amount, username))
-        # Insert into BETS table
         cursor.execute("INSERT INTO bets (username, amount, vote_type) VALUES (?, ?, ?)", (username, amount, vote_type))
-        # Hook Statistics into the Gamba Loop
         cursor.execute("UPDATE users SET bets_placed = bets_placed + 1 WHERE username = ?", (username,))
         
         try:
@@ -155,16 +152,17 @@ def place_bet(username, amount, vote_type):
                 VALUES (?, ?, ?)
             ''', (username, vote_type, amount))
             cursor.execute("UPDATE gamba_session_state SET total_pool = total_pool + ? WHERE id = 1", (amount,))
+            conn.commit()
         except Exception as e:
-            print(f"⚠️ Crash recorder sync warning: {e}")
+            print(f"⚠️ Crash recorder sync notice (Non-fatal): {e}")
 
+        conn.close()
         return True, f"[💎] Bet placed! {amount} points on '{vote_type}'."
     
     except Exception as e:
         conn.rollback()
-        return False, f"Error: {str(e)}"
-    finally:
         conn.close()
+        return False, f"❌ Error: {str(e)}"
 
 def resolve_bets(winning_type):
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
