@@ -28,7 +28,6 @@ async def run_bot_async():
         print("❌ Error: Input cannot be empty.")
     elif clear_db == "Y":
         database.clear_daily_claims()
-        print("🧹 Reset daily claims table for fresh session.")
     else:
         print("📋 Daily Claim flags unchanged")
 

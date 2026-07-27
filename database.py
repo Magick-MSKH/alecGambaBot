@@ -20,7 +20,8 @@ def init_db():
             bets_lost INTEGER DEFAULT 0,
             highest_peak INTEGER DEFAULT 1000,
             discord_username TEXT DEFAULT NULL,
-            prestige_level INTEGER DEFAULT 0
+            prestige_level INTEGER DEFAULT 0,
+            daily_streak INTEGER DEFAULT 0
         )
     ''')
 
@@ -323,9 +324,20 @@ def record_daily_claim(username):
 def clear_daily_claims():
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM daily_claims")
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute('''
+            UPDATE users
+            SET daily_streak = 0
+            WHERE username NOT IN (SELECT username FROM daily_claims)
+        ''')
+        cursor.execute("DELETE FROM daily_claims")
+        conn.commit()
+        print("🧹 CLEARED DAILY CLAIMS & STREAK COUNTERS")
+    except Exception as e:
+        conn.rollback()
+        print(f"🛑 Error in claim/streak sub: {e}")
+    finally:
+        conn.close()
 
 def get_active_goal():
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
@@ -529,3 +541,18 @@ def get_user_prestige_multiplier(username):
         return 1
     
     return PRESTIGE_LOOKUP_TABLE[current_level - 1]["multiplier"]
+
+def get_user_daily_streak(username):
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
+    cursor = conn.cursor()
+    cursor.execute("SELECT daily_streak FROM users WHERE LOWER(username) = LOWER(?)", (username.strip(),))
+    row = cursor.fetchone()
+    conn.close()
+    return row if row and row else 0
+
+def increment_user_daily_streak(username):
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET daily_streak = daily_streak + 1 WHERE LOWER(username) = LOWER(?)", (username.strip(),))
+    conn.commit()
+    conn.close()

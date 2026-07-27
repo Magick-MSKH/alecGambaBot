@@ -83,24 +83,26 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     elif command in ["!daily", "!bonus", "!check_in"]:
         try:
-            print(f"🐞[DEBUG] Received User: {username} | Passed is_member flag: {is_member} (Type: {type(is_member)})")
+#           print(f"🐞[DEBUG] Received User: {username} | Passed is_member flag: {is_member} (Type: {type(is_member)})")
             if database.check_daily_claimed(username):
                 return f"⚠️ {username} , you have already claimed your bonus points for this stream."
-            
-            DAILY_REWARD = 1000 if is_member else 500
-            prestige_mult = database.get_user_prestige_multiplier(username)
-            DAILY_REWARD *= prestige_mult
 
-#           print(f"🐞[DEBUG] Allocating reward size: {DAILY_REWARD} points to {username}")
+            current_streak = database.get_user_daily_streak(username)
+            prestige_mult = databse.get_user_prestige_multiplier(username)
 
-            database.add_points(username, DAILY_REWARD)
+            BASE_REWARD = 1000 if is_member else 500
+            streak_bonus = current_streak * 500
+            FINAL_PAYOUT = (BASE_REWARD + streak_bonus) * prestige_mult
+
+            database.add_points(username, FINAL_PAYOUT)
             database.record_daily_claim(username)
+            databse.increment_user_daily_streak(username)
+#           new_balance = database.get_balance(username)
 
-            new_balance = database.get_balance(username)
             if is_member:
-                return f"🎁 {username} claimed their member bonus {DAILY_REWARD} points."
+                return f"🎁 {username} claimed their member bonus {FINAL_PAYOUT:,} points."
             else:
-                return f"🎁 {username} claimed their bonus {DAILY_REWARD} points."
+                return f"🎁 {username} claimed their bonus {FINAL_PAYOUT:,} points."
 
         except Exception as e:
             return f"❌ Error claiming !daily: {str(e)}"
@@ -214,8 +216,10 @@ def process_user_command(username, message_text, is_member=False):
             else:
                 amount = int(amount_str)
 
-            if amount < 100:
-                return "❌ A Minimum of 100 points must be thrown into the pit."
+            pit_cost = database.get_user_prestige_multiplier(username) * 100
+
+            if amount < pit_cost:
+                return f"❌ A Minimum of {pit_cost} points must be thrown into the pit."
 
             balance = database.get_balance(username)
             if balance < amount:
