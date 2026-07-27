@@ -109,7 +109,7 @@ class ClassSelectView(discord.ui.View):
 @bot.tree.command(name="create", description="Create a new Hero! (Costs 5,000 channel points)")
 async def create(interaction:discord.Interaction):
     view = ClassSelectView()
-    await interaction.response.send_message("🛡️ CHOOSE YOUR CLASS ARCHETYPE BELOW 🛡️", view=view)
+    await interaction.response.send_message("🛡️ CHOOSE YOUR CLASS ARCHETYPE BELOW 🛡️", view=view, ephemeral=True)
 
 # ==================================
 # SLASH COMMAND: status
