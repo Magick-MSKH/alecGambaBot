@@ -275,10 +275,15 @@ class TownHubView(discord.ui.View):
 
     @discord.ui.button(label="⚔️ Visit Blacksmith", style=discord.ButtonStyle.blurple, custom_id="hub_shop")
     async def shop_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        shop_view = discord.ui.View(timeout=60)
+        shop_view.add_item(BlacksmithMenu())
+        
         await interaction.response.send_message(
-            content="🛡️ **CHARSI'S ARMORY**: 'Looking for weapons or armor? You've come to the right place!'\n*(Charsi item tier menu coming soon...)*",
+            content="⚒️ **CHARSI'S ARMORY**: 'Looking for protection, or something to swing? Select an item below to buy:'",
+            view=shop_view,
             ephemeral=True
         )
+
 
     @discord.ui.button(label="🔮 Magick Manor", style=discord.ButtonStyle.secondary, custom_id="hub_spells")
     async def spell_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -324,6 +329,59 @@ async def town(interaction: discord.Interaction):
     else:
         await interaction.response.send_message(embed=embed, view=view)
 
+# ================================================
+# CHARSI'S ARMORY MERCHANT DROPDOWN SELECT MENU
+# ================================================
+
+class BlacksmithMenu(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Bronze Dagger (10 Gold)", description="Adds +2 Physical Attack Power.", emoji="🗡️", value="dagger_10"),
+            discord.SelectOption(label="Iron Broadsword (50 Gold)", description="Adds +8 Physical Attack Power.", emoji="⚔️", value="sword_50"),
+            discord.SelectOption(label="Leather Armor (15 Gold)", description="Adds +3 Physical Armor Defense.", emoji="👕", value="leather_15"),
+            discord.SelectOption(label="Chainmail Torso (75 Gold)", description="Adds +10 Physical Armor Defense.", emoji="🛡️", value="chain_75")
+        ]
+        super().__init__(placeholder="🛒 Purchase gear from Charsi's Forge...", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        caller_name = interaction.user.name
+        yt_handle = database.get_youtube_handle_from_discord(caller_name)
+        if not yt_handle: return
+
+        await interaction.response.defer(ephemeral=True)
+        
+        item_choice = self.values
+        item_id, cost_str = item_choice.split("_")
+        cost = int(cost_str)
+
+        import sqlite3
+        conn = sqlite3.connect(rpg_database.RPG_DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT gold FROM characters WHERE username = ?", (yt_handle,))
+        row = cursor.fetchone()
+
+        if not row or row < cost:
+            conn.close()
+            await interaction.followup.send(content=f"❌ **INSUFFICIENT GOLD**: Sorry, traveler. You need {cost} Gold to buy this.'", ephemeral=True)
+            return
+
+        new_gold = row - cost
+        
+        if "dagger" in item_id or "sword" in item_id:
+            cursor.execute("UPDATE characters SET gold = ? WHERE username = ?", (new_gold, yt_handle))
+            cursor.execute("UPDATE inventory SET main_hand = ? WHERE username = ?", (item_id.capitalize(), yt_handle))
+            item_name = "Bronze Dagger" if "dagger" in item_id else "Iron Broadsword"
+            msg = f"⚒️ **CHARSI'S FORGE**: You paid {cost} Gold. Charsi hands you a finely polished **{item_name}** and equips it to your main-hand weapon slot! 🪙"
+        else:
+            cursor.execute("UPDATE characters SET gold = ? WHERE username = ?", (new_gold, yt_handle))
+            cursor.execute("UPDATE inventory SET body_armor = ? WHERE username = ?", (item_id.capitalize(), yt_handle))
+            item_name = "Leather Armor" if "leather" in item_id else "Chainmail Torso"
+            msg = f"⚒️ **CHARSI'S FORGE**: You paid {cost} Gold. Charsi hands you a thick **{item_name}** and layers it onto your body armor slot! 🪙"
+
+        conn.commit()
+        conn.close()
+        
+        await interaction.followup.send(content=msg, ephemeral=True)
 
 
 
