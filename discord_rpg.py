@@ -38,7 +38,6 @@ async def on_ready():
 # ==================================
 # GUI: CLASS SELECT MENU
 # =================================
-
 class ClassSelectMenu(discord.ui.Select):
     def __init__(self):
         # Define drop-down menu parameters
@@ -108,7 +107,6 @@ class ClassSelectView(discord.ui.View):
 # ==================================
 # SLASH COMMAND: create
 # ==================================
-
 @bot.tree.command(name="create", description="Create a new Hero! (Costs 5,000 channel points)")
 async def create(interaction:discord.Interaction):
     view = ClassSelectView()
@@ -117,7 +115,6 @@ async def create(interaction:discord.Interaction):
 # ==================================
 # SLASH COMMAND: status
 # ==================================
-
 @bot.tree.command(name="status", description="Inspect Hero Card (Status, Equipment, Gold).")
 async def status(interaction: discord.Interaction):
     caller_discord_username = interaction.user.name
@@ -192,7 +189,6 @@ async def status(interaction: discord.Interaction):
 # ===================================================
 # SLASH COMMAND REGISTRATION ENGINE: /bank deposit
 # ===================================================
-
 @bot.tree.command(name="bank", description="Exchange channel points into Gold via Gheed. (ExchRate = 1000pts -> 1g)")
 @discord.app_commands.describe(amount="Number of channel points to exchange, or type 'all'")
 async def bank_deposit(interaction: discord.Interaction, amount: str):
@@ -248,7 +244,6 @@ async def bank_deposit(interaction: discord.Interaction, amount: str):
 # ======================================
 # TOWN HUB: MAIN ACTION BUTTONS PANEL
 # ======================================
-
 class TownHubView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -298,7 +293,6 @@ class TownHubView(discord.ui.View):
 # ===========================================
 # SLASH COMMAND REGISTRATION ENGINE: /town
 # ===========================================
-
 @bot.tree.command(name="town", description="Enter the Rogue Encampment to rest, shop or manage gear.")
 async def town(interaction: discord.Interaction):
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -335,7 +329,6 @@ async def town(interaction: discord.Interaction):
 # ================================================
 # CHARSI'S ARMORY MERCHANT DROPDOWN SELECT MENU
 # ================================================
-
 class BlacksmithMenu(discord.ui.Select):
     def __init__(self):
         options = [
@@ -385,9 +378,6 @@ class BlacksmithMenu(discord.ui.Select):
         conn.close()
         
         await interaction.followup.send(content=msg, ephemeral=True)
-
-
-
 
 ######################
 ### START PIPELINE ###

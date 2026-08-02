@@ -99,7 +99,6 @@ def fetch_filtered_area_enemies():
         records = worksheet.get_all_records()
         
         if records:
-            # Map master sheet rows into the 3-tier filtration groups dynamically & Strips area bosses from standard fights
             filtered_list = []
             for row in records:
                 m_name = row.get("Act I", "").strip()
@@ -116,14 +115,11 @@ def fetch_filtered_area_enemies():
     except Exception as sheets_err:
         print(f"⚠️ [CONFIG SHEETS FILTER ERROR] Routing directly to grouped code tables: {sheets_err}")
 
-    # Fall back to the bulletproof dictionary subsets if sheets connection drops
     return act_1_matrix.get(active_group.lower(), act_1_matrix["group 1"])
 
 def execute_fight_encounter(username):
     conn = sqlite3.connect(rpg_database.RPG_DB_NAME)
     cursor = conn.cursor()
-    
-    # Get user data
     cursor.execute('''
         SELECT class_name, level, xp, gold, current_hp, max_hp, current_mp, max_mp, 
                base_str, base_dex, base_int, base_vit, base_eng, stamina 

@@ -227,7 +227,6 @@ def fetch_class_stat_growth(class_name):
     except Exception as e:
         print(f"⚠️ [GROWTH SHEET ERROR] Falling back to precise blueprint matrix: {e}")
 
-    # Your exact blueprint data preserved with fractional parameters
     fallbacks = {
         "warrior":  {"hp": 1.0, "mp": 0.2, "str": 2.0,  "dex": 1.0,  "int": 0.2,  "vit": 1.0, "eng": 0.0},
         "wizard":   {"hp": 0.5, "mp": 1.0, "str": 0.2,  "dex": 0.25, "int": 2.0,  "vit": 1.0, "eng": 2.0},
@@ -259,7 +258,6 @@ def check_and_execute_level_up(username):
         
         growth = fetch_class_stat_growth(c_class)
         
-        # Accumulate the fractional growth numbers cleanly in memory
         new_max_hp = max_hp + growth["hp"]
         new_max_mp = max_mp + growth["mp"]
         new_str = b_str + growth["str"]
@@ -268,7 +266,6 @@ def check_and_execute_level_up(username):
         new_vit = b_vit + growth["vit"]
         new_eng = b_eng + growth["eng"]
 
-        # Save the full floats to the database, fully restoring current resources to the new ceiling
         cursor.execute('''
             UPDATE characters 
             SET level = ?, xp = ?, max_hp = ?, current_hp = ?, max_mp = ?, current_mp = ?,
@@ -306,7 +303,7 @@ def rest_at_inn(username):
         
     c_class, gold, max_hp, b_vit = player
     
-    # 2. Enforce the town economy cost rule
+    # 2. Enforce town economy cost rule
     inn_cost = 2
     if gold < inn_cost:
         conn.close()
@@ -317,10 +314,8 @@ def rest_at_inn(username):
     base_stats = {
         "max_hp": max_hp, "max_mp": 0, "str": 0, "dex": 0, "int": 0, "vit": b_vit, "eng": 0
     }
-    # Pull the first item of the derived stats tuple (scaled_max_hp)
     scaled_max_hp, _, _, _, _, _ = rpg_combat.calculate_derived_stats(c_class, base_stats)
 
-    # 4. Deduct the gold, maximize their current health pool, and save
     new_gold = gold - inn_cost
     cursor.execute('''
         UPDATE characters 
@@ -330,5 +325,4 @@ def rest_at_inn(username):
     conn.commit()
     conn.close()
     
-    # Clean, concise whole-number output to protect chat scannability
     return f"🛌 {username} paid {inn_cost} Gold to rest. ❤️ Wounds fully healed! HP: {int(scaled_max_hp)}/{int(scaled_max_hp)}"
