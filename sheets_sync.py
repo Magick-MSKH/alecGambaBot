@@ -2,7 +2,6 @@ import sqlite3
 import gspread
 import database
 
-# Cache GLOBAL ref for login session
 GC_SESSION = None
 
 def sync_to_google_sheets():

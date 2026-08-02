@@ -47,16 +47,11 @@ async def check_terminal_input():
                     
                     if reply:
                         print(f"🖥️  [CONSOLE RESPONSE] {reply}")
-                        
-                        # NEW: If the command is an announcement that viewers NEED to see,
-                        # relay that text string straight to the YouTube live stream!
-                        # We skip plain '!give' command spam so chat stays bloat-free.
+
                         if command_line.startswith("!gamba_") or command_line.startswith("!give_all"):
                             if SENDER_OBJECT:
-                                # We 'await' the message delivery securely
                                 await SENDER_OBJECT.send_message(reply)
-                        
-                        # Instantly update the Google Sheet leaderboard
+
                         sheets_sync.sync_to_google_sheets()
                     else:
                         print("❌ Console Warning: Command ignored or invalid formatting layout.")

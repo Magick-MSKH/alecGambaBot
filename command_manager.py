@@ -49,7 +49,6 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     # COMMAND: !current_gamba
     # ==========================================
-
     elif command in ["!current_gamba", "!current_bet", "!gamba_info", "!pool"]:
         try:
             pool_info = admin_manager.get_current_pool_info()

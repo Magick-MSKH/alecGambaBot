@@ -22,7 +22,6 @@ def process_admin_command(sender_id, sender_name, message_text):
         return None
 
     command = parts[0].lower()
-
     s_name_clean = str(sender_name).strip().lower() if sender_name else ""
     
     is_admin_name = (

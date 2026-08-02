@@ -153,7 +153,6 @@ async def run_bot_async():
                     if len(parts) >= 3:
                         try:
                             is_currently_capped = False
-#                           was_capped = False
                             amount_str = parts[1].lower()
                             vote = parts[2].lower()
                             if vote not in admin_manager.VALID_OPTIONS:

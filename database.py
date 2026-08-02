@@ -524,7 +524,6 @@ def execute_user_prestige(username):
 
     conn.commit()
     conn.close()
-
     return {"status": "SUCCESS", "new_level": new_level, "multiplier": target_tier["multiplier"]}
 
 def get_prestige_level(username):

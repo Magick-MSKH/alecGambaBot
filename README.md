@@ -1,4 +1,5 @@
 # **MagickBot GAMBA User Commands**
+### v1.5b
 
 * `!balance`        Check your point total
   - **NEW**:        You can now check another user's balance with `!balance @username`

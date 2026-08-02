@@ -2,6 +2,10 @@ import time
 import random
 import database
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+# BATTLE COMMAND IS CURRENTLY DISABLED
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 ACTIVE_BATTLE = {
     "status": "IDLE",
     "instigator": "",
