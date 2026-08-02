@@ -548,7 +548,7 @@ def get_user_daily_streak(username):
     cursor.execute("SELECT daily_streak FROM users WHERE LOWER(username) = LOWER(?)", (username.strip(),))
     row = cursor.fetchone()
     conn.close()
-    return row if row and row else 0
+    return row[0] if row and row[0] else 0
 
 def increment_user_daily_streak(username):
     conn = sqlite3.connect(DB_NAME, timeout=30.0)

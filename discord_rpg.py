@@ -13,7 +13,10 @@ intents.members = True
 
 # Init command bot prefix wrapper
 bot = commands.Bot(command_prefix="!", intents=intents)
-load_dotenv
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(base_dir, ".env")
+load_dotenv(dotenv_path=env_path)
 
 @bot.event
 async def on_ready():
@@ -63,7 +66,7 @@ class ClassSelectMenu(discord.ui.Select):
             )
             return
 
-        await interaction.response.defer(ephemeral=False)
+        await interaction.response.defer(ephemeral=True)
         reply_string = rpg_database.register_new_character(verified_yt_handle, chosen_class.lower())
 
         if "❌" in reply_string:
@@ -132,7 +135,7 @@ async def status(interaction: discord.Interaction):
             )
         return
 
-    await interaction.response.defer(ephemeral=False)
+    await interaction.response.defer(ephemeral=True)
 
     conn = sqlite3.connect(rpg_database.RPG_DB_NAME)
     cursor = conn.cursor()
@@ -208,7 +211,7 @@ async def bank_deposit(interaction: discord.Interaction, amount: str):
             )
         return
 
-    await interaction.response.defer(ephemeral=False)
+    await interaction.response.defer(ephemeral=True)
 
     reply_string = rpg_database.deposit_to_gheed(verified_yt_handle, amount.strip().lower())
 
@@ -308,7 +311,7 @@ async def town(interaction: discord.Interaction):
         thumbnail_url = "attachment://town.png"
 
     embed = discord.Embed(
-        title="⛺ ROGUE ENCAMPMENT ⛺"
+        title="⛺ ROGUE ENCAMPMENT ⛺",
         description=(
             "Welcome to the Rogue Encampment. Here you can exchange channel points for Gold, "
             "heal wounds at the Inn, and prepare yourself for battles to come.\n\n"

@@ -1,6 +1,7 @@
 import time
 import random
 import database
+import rpg_database
 import admin_manager
 
 PIT_COOLDOWN_TRACKER = {}
@@ -17,8 +18,13 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     if command in ["!balance", "!points", "!cash"]:
         try:
-            balance = database.get_balance(username)
-            return f"💰 {username} , you currently have {balance} points!"
+            if len(parts) < 2:
+                balance = database.get_balance(username)
+                return f"💰 {username} , you currently have {balance} points!"
+            else:
+                target_user = parts[1]
+                balance = database.get_balance(target_user)
+                return f"💰 {target_user} currently has {balance} points!"
         except Exception as e:
             return f"❌ ERROR Checking balance: {str(e)}"
 
@@ -88,7 +94,7 @@ def process_user_command(username, message_text, is_member=False):
                 return f"⚠️ {username} , you have already claimed your bonus points for this stream."
 
             current_streak = database.get_user_daily_streak(username)
-            prestige_mult = databse.get_user_prestige_multiplier(username)
+            prestige_mult = database.get_user_prestige_multiplier(username)
 
             BASE_REWARD = 1000 if is_member else 500
             streak_bonus = current_streak * 500
@@ -96,7 +102,7 @@ def process_user_command(username, message_text, is_member=False):
 
             database.add_points(username, FINAL_PAYOUT)
             database.record_daily_claim(username)
-            databse.increment_user_daily_streak(username)
+            database.increment_user_daily_streak(username)
 #           new_balance = database.get_balance(username)
 
             if is_member:
@@ -197,7 +203,7 @@ def process_user_command(username, message_text, is_member=False):
         # Check PIT amount with the base command
         if len(parts) < 2:
             current_jackpot = database.get_pit_total()
-            return f"[MONEY PIT]: There are currently {current_jackpot:,} points inside the pit!"
+            return f"🕳️ PIT TOTAL: {current_jackpot:,} channel points"
 
         if username in PIT_COOLDOWN_TRACKER:
             if current_time < PIT_COOLDOWN_TRACKER[username]:
@@ -213,6 +219,8 @@ def process_user_command(username, message_text, is_member=False):
                 amount = database.get_balance(username)
             elif amount_str == "half":
                 amount = int(database.get_balance(username) / 2)
+            elif amount_str == "min":
+                amount = database.get_user_prestige_multiplier(username) * 100
             else:
                 amount = int(amount_str)
 
@@ -227,31 +235,43 @@ def process_user_command(username, message_text, is_member=False):
 
             database.add_points(username, -amount)
             database.add_to_pit(amount)
-
             PIT_COOLDOWN_TRACKER[username] = current_time + 300
             
-            # Get updated total pool for lottery calculation
+            # Init PIT total
             fresh_jackpot = database.get_pit_total()
-            roll = random.randint(1, 999)
             
-            if roll == 777:
-                database.add_points(username, fresh_jackpot)
-                database.reset_pit()
-                return f"🎰 JACKPOT! {username} rolled 7️⃣7️⃣7️⃣ and won all {fresh_jackpot:,} points!"
-            elif roll == 333:
-                database.add_to_pit(fresh_jackpot)
-                fresh_jackpot = database.get_pit_total() # Renew pit total
-                return f"🪽 Masekah descends to bless the pit. The pool is doubled to {fresh_jackpot:,} points!"
-            elif roll == 666:
-                database.add_to_pit(-amount)
-                fresh_jackpot = database.get_pit_total() # Renew pit total
-                return f"😈 Lilith grabs {username} 's points and sets them ablaze!🔥 The pit total remains unchanged at {fresh_jackpot}!"
-            elif roll == 999:
-                database.add_to_pit(999)
-                fresh_jackpot = database.get_pit_total()
-                return f"🎰 9️⃣9️⃣9️⃣ special! 999 bonus points have been added to the pit! New total: {fresh_jackpot} points."
+            if amount > 9999:
+                roll = random.randint(111, 999)
             else:
-                return f"🕳️ {username} threw {amount:,} points into the money pit! The roll was {roll}. Current Pit Value: {fresh_jackpot:,} points!"
+                roll = random.randint(1, 999)
+            
+            match roll:
+#               case 111:
+                    # Do something
+#               case 222:
+                    # Do something
+                case 333:
+                    database.add_to_pit(fresh_jackpot)
+                    fresh_jackpot = database.get_pit_total()
+                    return f"🪽 Masekah descends to bless the pit.🪽 The pool is doubled to {fresh_jackpot:,} points!"
+                case 444:
+                    return rpg_database.deposit_to_gheed(username, 44000)
+#               case 555:
+                    # Do something
+                case 666:
+                    database.add_to_pit(-amount)
+                    fresh_jackpot = database.get_pit_total() # Renew pit total
+                    return f"🔥 Lily grabs {username} 's points and sets them ablaze!🔥 The pit total remains unchanged at {fresh_jackpot}!"
+                case 777:
+                    database.add_points(username, fresh_jackpot)
+                    database.reset_pit()
+                    return f"🎰 JACKPOT! {username} rolled 7️⃣7️⃣7️⃣ and won all {fresh_jackpot:,} points!"
+#               case 888:
+                    # Do something
+#               case 999:
+                    # Do something
+                case _:
+                    return f"🕳️ {username} threw {amount:,} points into the money pit! The roll was {roll}. Current Pit Value: {fresh_jackpot:,} points!"
 
         except ValueError:
             return "❌ Error: Specify an Integer, 'half', or 'all' to throw into the pit."
