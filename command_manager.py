@@ -89,7 +89,6 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     elif command in ["!daily", "!bonus"]:
         try:
-#           print(f"🐞[DEBUG] Received User: {username} | Passed is_member flag: {is_member} (Type: {type(is_member)})")
             if database.check_daily_claimed(username):
                 return f"⚠️ {username} , you have already claimed your bonus points for this stream."
 

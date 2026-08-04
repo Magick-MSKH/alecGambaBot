@@ -8,9 +8,7 @@ POINTS_PASSIVE = 50
 POINTS_SUPER_CHAT_MULTIPLIER = 250 # Example: ($5 Super Chat) * 250 = 1250 points
 POINTS_MEMBER_GIFT = 1500
 
-# Tracks {username: last_seen_timestamp} to handle passive points
 active_viewers = {}
-# Tracks {username: last_chat_timestamp} to prevent spam-farming points
 chat_cooldowns = {}
 
 def process_incoming_message(username, message_text, message_type, details=None, is_member=False):
@@ -18,21 +16,15 @@ def process_incoming_message(username, message_text, message_type, details=None,
         return
     
     current_time = time.time()
-
-    # Mark user as active for passive point loops (lasts 15 minutes)
     active_viewers[username] = current_time
 
-    # 1. Handle Regular Chat Messages
     if message_type == "textMessageEvent":
         
-        # 30-second cooldown so they can't spam characters for points
         last_chat = chat_cooldowns.get(username, 0)
         
         if current_time - last_chat > 30:
             
-            # Calculate base points
             reward = POINTS_PER_CHAT
-            # Apply the 2x multiplier if they're a channel member
             if is_member:
                 reward = int(POINTS_PER_CHAT * 2)
             else:
@@ -44,11 +36,9 @@ def process_incoming_message(username, message_text, message_type, details=None,
             database.add_points(username, reward)
             chat_cooldowns[username] = current_time
 
-            # Custom terminal merker to see who is a member
             member_tag = "👑 [MEMBER]" if is_member else "👤"
             print(f"{member_tag} {username} earned {POINTS_PER_CHAT} points for chatting")
 
-    # 2. Handle Super Chats
     if message_type == "superChatEvent":
         is_usd = details.get("is_usd", True)
         if is_usd:
@@ -61,25 +51,19 @@ def process_incoming_message(username, message_text, message_type, details=None,
         print(f"🌟 [SUPER CHAT DETECTED] {username} donated ${donation_amount} and got {points_to_add} points!")
         sheets_sync.sync_to_google_sheets()
 
-    # 3. Handle Membership Gifts / New Members
     if message_type == "membershipGIFTEvent" or message_type == "newSponsorEvent":
         database.add_points(username, POINTS_MEMBER_GIFT)
         print(f"👑 MEMBER EVENT! {username} supported the channel and earned bonus points!")
         sheets_sync.sync_to_google_sheets()
 
-    # 4. Handle Member Milestone Events (Dynamic)
     if message_type == "memberMilestoneChatEvent":
 
         if details is None:
             details = {}
 
-        # Read the months count passed from main.py
         months = details.get("months", 1)
-
-        # Dynamic formula
         dynamic_payout = 1000 + (months *  250)
 
-        # Add points
         database.add_points(username, dynamic_payout)
         print(f"🏆 MILESTONE TIER: {username} cashed in Month {months} card for {dynamic_payout} points!")
         sheets_sync.sync_to_google_sheets()
@@ -88,14 +72,12 @@ def DistributePassivePoints():
     current_time = time.time()
     still_active = []
 
-    # 1. Filter out users who haven't typed in over 15 minutes
     for username, last_seen in list(active_viewers.items()):
-        if current_time - last_seen < 900: # in seconds
+        if current_time - last_seen < 900:
             still_active.append(username)
         else:
-            del active_viewers[username] # remove inactive users
+            del active_viewers[username]
 
-    # 2. Iterate & check db profiles to reward balances individually
     for username in still_active:
         reward = POINTS_PASSIVE
         database.add_points(username, reward)

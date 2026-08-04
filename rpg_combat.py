@@ -8,7 +8,6 @@ import rpg_database
 def calculate_derived_stats(class_name, base_stats):
     c_type = class_name.lower().strip()
     
-    # 1. Unpack raw integer attributes from SQLite player profile row
     hp_base = int(base_stats["max_hp"])
     mp_base = int(base_stats["max_mp"])
     s = int(base_stats["str"])
@@ -17,7 +16,6 @@ def calculate_derived_stats(class_name, base_stats):
     v = int(base_stats["vit"])
     e = int(base_stats["eng"])
 
-    # 2. Set default baseline profiles
     attack_power = max(1, s // 2)    # Default baseline physical damage
     defense = d // 4                 # Default baseline armor reduction
     magic_attack = i                 # Default baseline magic damage
@@ -59,20 +57,18 @@ def fetch_current_world_parameters():
         sh = gc.open("RPGConfig")
         world_tab = sh.worksheet("RPGWorldState")
         
-        # Read the live administrative zone switches directly from fixed cells
-        act_string = str(world_tab.acell("B2").value).strip()   # e.g., "Act I"
-        group_string = str(world_tab.acell("B3").value).strip() # e.g., "Group 1"
+        act_string = str(world_tab.acell("B2").value).strip()   # Ex: "Act I"
+        group_string = str(world_tab.acell("B3").value).strip() # Ex: "Group 1"
         
         return act_string, group_string
     except Exception as e:
         print(f"⚠️ [WORLD STATE ERROR] Failed to read cells: {e}")
-        return "Act I", "Group 1" # Safety net rock-solid fallback defaults
+        return "Act I", "Group 1"
 
 def fetch_filtered_area_enemies():
     # Grab administrative cell parameters
     active_act, active_group = fetch_current_world_parameters()
     
-    # Hardcoded structural fallback matrix
     act_1_matrix = {
         "group 1": [
             {"Name": "Imp", "HP": 20, "MP": 0, "ATK": 1, "DEF": 0, "MAGIC ATTACK": 0, "MAGIC DEFENSE": 0, "XP": 1, "GOLD": "0,1", "LOOT": "None"},
@@ -91,7 +87,6 @@ def fetch_filtered_area_enemies():
         ]
     }
     
-    # Check live sheets table rows first (allowing dynamic edits), otherwise route to fallback groups
     try:
         gc = gspread.service_account(filename="sheets_credentials.json")
         sh = gc.open("RPGConfig")
@@ -105,7 +100,6 @@ def fetch_filtered_area_enemies():
                 if m_name and m_name not in ["The Smith", "Andariel", "None", ""]:
                     filtered_list.append(row)
             
-            # Segment the live array list into clean sequential subsets of 3
             if active_group.lower() == "group 1" and len(filtered_list) >= 3:
                 return [{"Name": filtered_list[j]["Act I"], **filtered_list[j]} for j in range(3)]
             elif active_group.lower() == "group 2" and len(filtered_list) >= 6:
@@ -140,19 +134,15 @@ def execute_fight_encounter(username):
         conn.close()
         return f"❌ You have no health, {username}"
 
-    # Pack raw inputs into dictionary container for calculator
     base_stats = {
         "max_hp": max_hp, "max_mp": max_mp, "str": b_str, 
         "dex": b_dex, "int": b_int, "vit": b_vit, "eng": b_eng
     }
 
-    # Run dynamic unified stat calc
     scaled_max_hp, scaled_max_mp, p_atk, p_def, p_matk, double_strike_prob = calculate_derived_stats(c_class, base_stats)
 
-    # Apply auto mana regeneration rule
     player_mp_sim = scaled_max_mp
 
-    # Fetch enemy datasets from sheet configs
     active_enemies = fetch_filtered_area_enemies()
     monster = random.choice(active_enemies)
     
@@ -166,7 +156,6 @@ def execute_fight_encounter(username):
     loot_reward = random.choice(str(monster["LOOT"]).split(","))
     if loot_reward.lower() == "none": loot_reward = None
 
-    # Combat sim loop
     player_hp_sim = cur_hp
     enemy_hp_sim = m_hp
     turns_max = 20
@@ -174,14 +163,8 @@ def execute_fight_encounter(username):
     chosen_spell = spell_choice.lower().strip() if spell_choice else None
     is_archer_sight = (chosen_spell in ["innersight", "innersight+"]) and (c_class.lower() == "archer")
     valid_bolts = ["firebolt", "chargedbolt", "icebolt"]
-    
-#   player_dmg = max(1, b_str // 2) 
-#   enemy_dmg = max(1, m_atk - (b_dex // 4))
-#   is_archer_sight = (chosen_spell in ["innersight", "innersight+"]) and (c_class.lower() == "archer")
 
     for turn in range(1, turns_max + 1):
-        # PLAYER'S TURN PASS
-        # Calculate num of player actions (Archer Multi-Attack logic, etc)
         total_strikes = 1
         if c_class.lower() == "archer" and random.random() < double_strike_prob:
             total_strikes = 2
@@ -193,12 +176,10 @@ def execute_fight_encounter(username):
                 break
                 
             elif chosen_spell in valid_bolts and player_mp_sim >= 1 and c_class.lower() == "wizard":
-                # Wizard Bolt Cast Pass: Spend 1 MP to hit with Magic Attack power bypassing physical armor
                 player_mp_sim -= 1
                 player_magic_dmg = max(1, p_matk - m_mdef)
                 enemy_hp_sim -= player_magic_dmg
             else:
-                # Default Standard Physical Strike Pass: Modified by player scaled ATK and monster DEF
                 enemy_phys_dmg = max(1, p_atk - int(monster["DEF"]))
                 enemy_hp_sim -= enemy_phys_dmg
 

@@ -57,7 +57,6 @@ class YouTubeChatSender:
     async def get_new_messages(self):
         new_items = []
         try:
-            # Locate all active chat message render blocks currently on screen
             cards = await self.page.query_selector_all('yt-live-chat-text-message-renderer, yt-live-chat-paid-message-renderer, yt-live-chat-membership-item-renderer')
             
             if len(cards) > 20:
@@ -108,7 +107,7 @@ class YouTubeChatSender:
                     header_elem = await card.query_selector('#header-text')
                     header_text = await header_elem.inner_text() if header_elem else ""
 
-                    message_text = "Channel Membership Event! 👑" # Dummy STR so loop filters don't reject
+                    message_text = "Channel Membership Event! 👑"
                     
                     if "milestone" in header_text.lower() or "member for" in header_text.lower():
                         message_type = "memberMilestoneChatEvent"

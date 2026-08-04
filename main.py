@@ -16,9 +16,8 @@ from chat_sender import YouTubeChatSender
 IS_BOT_RUNNING = True
 
 async def run_bot_async():
-    # Init SQLite tables
+
     database.init_db()
-#   rpg_database.init_rpg_db() --Moving this feature to Discord
 
     ##########################
     ### Clear Daily Claims ###
@@ -81,12 +80,10 @@ async def run_bot_async():
     global IS_BOT_RUNNING
     IS_BOT_RUNNING = True
 
-    # --- MASTER BROWSER STREAM ENGINE LOOP ---
     while IS_BOT_RUNNING:
         try:
             current_time = time.time()
             
-            # 5-Minute Passive updates
             if current_time - last_passive_tick >= 300:
                 points_manager.DistributePassivePoints()
                 sheets_sync.sync_to_google_sheets()

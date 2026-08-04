@@ -183,7 +183,6 @@ async def status(interaction: discord.Interaction):
     )
     embed.set_footer(text="🐞 PLACEHOLDER 'CHANNEL POINT TO GOLD VIA GHEED' MESSAGE")
 
-    # Erase processing delay notice, deliver embed data directly to server channel
     await interaction.edit_original_response(embed=embed)
 
 # ===================================================

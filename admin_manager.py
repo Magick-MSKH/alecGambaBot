@@ -160,10 +160,8 @@ def process_admin_command(sender_id, sender_name, message_text):
         try:
             amount = int(amount_str)
 
-            # Execute the mass update in the database
             database.add_points_to_all_registered(amount)
 
-            # Trigger immediate Google Sheets sync so the leaderboard updates
             sheets_sync.sync_to_google_sheets()
 
             return f"🎉 Giving {amount} points to ALL users! 🎁"
@@ -234,14 +232,13 @@ def get_current_pool_info():
         return (f"🎰 ACTIVE POOL 🟢OPEN!: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Bets capped at {ACTIVE_GAMBA_CAP}")
 
 def check_and_execute_boot_recovery():
-#   global IS_BETTING_OPEN, IS_BETTING_LOCKED, VALID_OPTIONS
+    global IS_BETTING_OPEN, IS_BETTING_LOCKED, VALID_OPTIONS
     
     recovered = database.recover_gamba_session_from_crash()
     
     if recovered:
         print("🚨 [CRASH RECOVERY ENGINE ACTIVATED] Restoring live gambling session parameters...")
         
-        # Restore top-level administrative flags
         VALID_OPTIONS = recovered["options"]
         if recovered["status"] == "OPEN":
             IS_BETTING_OPEN = True
@@ -249,8 +246,6 @@ def check_and_execute_boot_recovery():
         elif recovered["status"] == "LOCKED":
             IS_BETTING_OPEN = True
             IS_BETTING_LOCKED = True
-            
-        # Re-populate main betting tables using saved rows
 
         for username, option, amount in recovered["bets"]:
             database.place_bet(username, amount, option)

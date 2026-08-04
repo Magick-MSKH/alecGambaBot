@@ -12,17 +12,13 @@ def sync_to_google_sheets():
             GC_SESSION = gspread.service_account(filename="sheets_credentials.json")
         else:
             try:
-                # Force gspread to check if the 1h token needs a refresh
                 GC_SESSION.auth.refresh(gspread.auth.requests.Requests())
             except Exception:
-                # If refreshing fails, log in from scratch to restore the link
                 GC_SESSION = gspread.service_account(filename="sheets_credentials.json")
         
-        # Open the workbook using our newly validated login session
         sh = GC_SESSION.open("Alec Stream Gamba Leaderboard")
-        worksheet = sh.worksheet("Data") # Sets the Data tab/sheet as the entry point
+        worksheet = sh.worksheet("Data")
 
-        # Pull data from SQLite
         conn = sqlite3.connect(database.DB_NAME)
         cursor = conn.cursor()
         cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
@@ -53,6 +49,4 @@ def sync_to_google_sheets():
         print("📊 Data tab successfully updated!")
     
     except Exception as e:
-        # If the token fails or if GSpread locks up or drops, print a debug message
-        # Bypass the crash handler and restart the script
         print(f"🐞 [DEBUG] GSpread Failure! Restart on next tic: {e}")

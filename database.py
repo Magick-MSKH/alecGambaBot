@@ -1,7 +1,3 @@
-# Alec Gamba Bot
-# SQLite3 Database
-# Stores User Data for GABMA functions
-
 import sqlite3
 
 DB_NAME = "gamba_bot.db"
@@ -10,7 +6,6 @@ def init_db():
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
-    # Updated USERS table (w/ stat counters!)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -359,7 +354,6 @@ def set_new_global_goal(new_name, points_needed):
     cursor = conn.cursor()
     # Wipe the existing active row
     cursor.execute("DELETE FROM global_goals")
-    # Insert the new challenge configuration
     cursor.execute(
         "INSERT INTO global_goals (goal_name, points_needed, points_contributed) VALUES (?, ?, 0)",
         (new_name, points_needed)

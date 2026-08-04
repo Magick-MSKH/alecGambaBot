@@ -103,7 +103,7 @@ def process_battle_command(username, parts):
 
     if ACTIVE_BATTLE["status"] == "CHALLENGED":
         if username_clean.lower() != ACTIVE_BATTLE["opponent"].lower():
-            return None # Ignore inputs from non-involved parties
+            return None
 
         if sub_cmd in ["decline", "refuse", "deny"]:
             instigator = ACTIVE_BATTLE["instigator"]
@@ -130,7 +130,7 @@ def process_battle_command(username, parts):
 
     if ACTIVE_BATTLE["status"] == "WAITING_INST":
         if username_clean.lower() != ACTIVE_BATTLE["instigator"].lower():
-            return None ### Forces turn-order (Instigator always goes first)
+            return None 
 
         try:
             guess = int(sub_cmd)

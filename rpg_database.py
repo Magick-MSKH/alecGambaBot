@@ -79,7 +79,6 @@ def fetch_class_base_stats(class_name):
         raw_rows = worksheet.get_all_values()
         
         for row in raw_rows[1:5]:
-            # Safety check: Ignore empty rows entirely
             if not row or len(row) < 8: 
                 continue
             
@@ -102,7 +101,7 @@ def fetch_class_base_stats(class_name):
     except Exception as e:
         import traceback
         print(f"⚠️ [CONFIG CRITICAL] Sheet extraction bypass warning: {e}")
-        print(traceback.format_exc()) # Explicitly logs the exact line number if a crash occurs
+        print(traceback.format_exc())
         
     return None
 
@@ -125,15 +124,13 @@ def register_new_character(username, chosen_class):
         conn.close()
         return f"🕹️❌ Character creation costs {creation_cost:,} points! Current balance: {user_balance:,}"
 
-    # Read independent flat HP/MP and attributes directly from the sheet
     stats = fetch_class_base_stats(chosen_class)
     if not stats:
         conn.close()
         return "[ERROR]: Could not load class stats from spreadsheet!"
 
     database.add_points(username, -creation_cost)
-    
-    # Store explicit Max/Current stats
+
     cursor.execute('''
         INSERT INTO characters (
             username, class_name, current_hp, max_hp, current_mp, max_mp, 
@@ -275,8 +272,6 @@ def check_and_execute_level_up(username):
               new_str, new_dex, new_int, new_vit, new_eng, username))
         conn.commit()
         conn.close()
-        
-        # TRUNCATION: Use int() to display clean, whole integers to the chat box!
         return (
             f" ✨ LEVEL UP! {username} reached Level {new_lvl}! "
             f"❤️ HP: {int(new_max_hp)} | 🔮 MP: {int(new_max_mp)} | "
@@ -289,8 +284,7 @@ def check_and_execute_level_up(username):
 def rest_at_inn(username):
     conn = sqlite3.connect(RPG_DB_NAME)
     cursor = conn.cursor()
-    
-    # 1. Fetch current character stats
+
     cursor.execute('''
         SELECT class_name, gold, max_hp, base_vit 
         FROM characters WHERE username = ?
@@ -302,14 +296,12 @@ def rest_at_inn(username):
         return "❌ You don't have an active hero profile registered yet! Type !create [class] first."
         
     c_class, gold, max_hp, b_vit = player
-    
-    # 2. Enforce town economy cost rule
+
     inn_cost = 2
     if gold < inn_cost:
         conn.close()
         return f"❌ You don't have enough gold to rest at the Inn! Akara demands {inn_cost} Gold. (Current: {gold} Gold)"
 
-    # 3. Dynamically calculate their maximum HP roof using your exact class formulas
     import rpg_combat
     base_stats = {
         "max_hp": max_hp, "max_mp": 0, "str": 0, "dex": 0, "int": 0, "vit": b_vit, "eng": 0
