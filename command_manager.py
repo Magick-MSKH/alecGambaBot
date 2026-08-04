@@ -5,6 +5,7 @@ import rpg_database
 import admin_manager
 
 PIT_COOLDOWN_TRACKER = {}
+PIT_CURSE_STATUS = False
 
 def process_user_command(username, message_text, is_member=False):
     parts = message_text.strip().split()
@@ -16,7 +17,7 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     # COMMAND: !balance
     # ==========================================
-    if command in ["!balance", "!points", "!cash"]:
+    if command == "!balance":
         try:
             if len(parts) < 2:
                 balance = database.get_balance(username)
@@ -31,7 +32,7 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     # COMMAND: !leaderboard
     # ==========================================
-    elif command in ["!leaderboard", "!richest", "!top"]:
+    elif command in ["!leaderboard", "!top"]:
         try:
             top_players = database.get_top_users(5)
             if not top_players:
@@ -49,7 +50,7 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     # COMMAND: !current_gamba
     # ==========================================
-    elif command in ["!current_gamba", "!current_bet", "!gamba_info", "!pool"]:
+    elif command == "!current_gamba":
         try:
             pool_info = admin_manager.get_current_pool_info()
             return pool_info
@@ -59,7 +60,7 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     # COMMAND: !stats
     # ==========================================
-    elif command in ["!stats", "!profile", "!gamba_stats"]:
+    elif command == "!stats":
         stats = database.get_player_stats(username)
         if not stats:
             return f"📋 Username {username} , no stats found yet! Type in chat to register."
@@ -70,7 +71,7 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     # COMMAND: !record
     # ==========================================
-    elif command in ["!record", "!peak", "!halloffame"]:
+    elif command == "!record":
         record = database.get_all_time_peak_record()
         if not record or record[1] == 1000:
             return "👑 No historical peak record has broken past the starting line yet!"
@@ -80,13 +81,13 @@ def process_user_command(username, message_text, is_member=False):
     # ==========================================
     # COMMAND: !help
     # ==========================================
-    elif command in ["!help", "!commands"]:
-        return "🤖 For a full list of commands, please check the Discord!"
+    elif command == "!help":
+        return "🤖 For a full list of commands, check the Discord channel or Github page"
 
     # ==========================================
     # COMMAND: !daily
     # ==========================================
-    elif command in ["!daily", "!bonus", "!check_in"]:
+    elif command in ["!daily", "!bonus"]:
         try:
 #           print(f"🐞[DEBUG] Received User: {username} | Passed is_member flag: {is_member} (Type: {type(is_member)})")
             if database.check_daily_claimed(username):
@@ -113,7 +114,7 @@ def process_user_command(username, message_text, is_member=False):
             return f"❌ Error claiming !daily: {str(e)}"
 
     # ==========================================
-    # COMMAND: !goal
+    # COMMAND: !current_goal
     # ==========================================
     elif command in ["!goal", "!current_goal", "!pointgoal"]:
         goal_data = database.get_active_goal()
@@ -197,12 +198,32 @@ def process_user_command(username, message_text, is_member=False):
     # COMMAND: !pit
     # ==========================================
 
-    elif command in ["!pit", "!throw", "!void"]:
+    elif command == "!pit":
         current_time = time.time()
-        # Check PIT amount with the base command
         if len(parts) < 2:
             current_jackpot = database.get_pit_total()
             return f"🕳️ PIT TOTAL: {current_jackpot:,} channel points"
+        
+        sub_command = parts[1].lower()
+        if sub_command == "cleanse":
+            try:
+                if PIT_CURSE_STATUS == False:
+                    return f"✝️ There is no Curse on the Pit"
+                else:
+                    cleanse_fee = 10000
+                    balance = database.get_balance(username)
+                    if balance < cleanse_fee:
+                        return f"{username} you do not have the required points to cleanse the pit."
+                    else:
+                        database.add_points(username, -cleanse_fee)
+                        PIT_CURSE_STATUS = False
+                        return f"✝️🪽 Masekah cleansed The Pit."
+            except Exception as e:
+                return f"❌ Error cleansing the pit: {str(e)}"
+
+
+        if PIT_CURSE_STATUS == True:
+            return f"💀 The Pit is CURSED and cannot be used!"
 
         if username in PIT_COOLDOWN_TRACKER:
             if current_time < PIT_COOLDOWN_TRACKER[username]:
@@ -245,6 +266,9 @@ def process_user_command(username, message_text, is_member=False):
                 roll = random.randint(1, 999)
             
             match roll:
+                case 1:
+                    PIT_CURSE_STATUS = True
+                    return f"👻 Blooky has cursed the pit! 💀 It cannot be used again unless cleansed!"
 #               case 111:
                     # Do something
 #               case 222:
