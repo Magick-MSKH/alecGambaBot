@@ -3,7 +3,7 @@ import sqlite3
 import database
 import admin_manager
 
-ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCr9EAyXltNes4Km4iqYmLcg"] # @magicmskh, @barelyalec, @notalecprobably, @bunnyisdreaming6081
+ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCr9EAyXltNes4Km4iqYmLcg", "UCFjzgN21rXjulNVDMalGx8A"] # @magicmskh, @barelyalec, @notalecprobably, @bunnyisdreaming6081, @gracefulgwaelin
 
 IS_BETTING_OPEN = False
 IS_BETTING_LOCKED = False
@@ -29,7 +29,8 @@ def process_admin_command(sender_id, sender_name, message_text):
         "bunnyisdreaming" in s_name_clean or
         "consoleadmin" in s_name_clean or
         "barelyalec" in s_name_clean or
-        "notalecprobably" in s_name_clean
+        "notalecprobably" in s_name_clean or
+        "gracefulgwaelin" in s_name_clean
     )
 
     is_authorized = sender_id in ADMIN_IDS or is_admin_name
