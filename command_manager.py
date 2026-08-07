@@ -14,9 +14,9 @@ def process_user_command(username, message_text, is_member=False):
     
     command = parts[0].lower()
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !balance
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     if command == "!balance":
         try:
             if len(parts) < 2:
@@ -29,9 +29,9 @@ def process_user_command(username, message_text, is_member=False):
         except Exception as e:
             return f"❌ ERROR Checking balance: {str(e)}"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !leaderboard
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command in ["!leaderboard", "!top"]:
         try:
             top_players = database.get_top_users(5)
@@ -47,9 +47,9 @@ def process_user_command(username, message_text, is_member=False):
         except Exception as e:
             return f"❌ Error loading leaderboard: {str(e)}"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !current_gamba
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command == "!current_gamba":
         try:
             pool_info = admin_manager.get_current_pool_info()
@@ -57,9 +57,9 @@ def process_user_command(username, message_text, is_member=False):
         except Exception as e:
             return f"❌ Error fetching pool data: {str(e)}"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !stats
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command == "!stats":
         stats = database.get_player_stats(username)
         if not stats:
@@ -68,9 +68,9 @@ def process_user_command(username, message_text, is_member=False):
             points, placed, won, lost, peak = stats
             return f"📊 {username}: {points} pts | Bets: {placed} (🏆{won}W /❌{lost}L) | Personal Peak: {peak} pts"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !record
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command == "!record":
         record = database.get_all_time_peak_record()
         if not record or record[1] == 1000:
@@ -78,15 +78,15 @@ def process_user_command(username, message_text, is_member=False):
         record_holder, record_points = record
         return f"👑 ALL-TIME RECORD: {record_holder} achieved a peak of {record_points} points! 🔥"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !help
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command == "!help":
         return "🤖 For a full list of commands, check the Discord channel or Github page"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !daily
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command in ["!daily", "!bonus"]:
         try:
             if database.check_daily_claimed(username):
@@ -112,9 +112,9 @@ def process_user_command(username, message_text, is_member=False):
         except Exception as e:
             return f"❌ Error claiming !daily: {str(e)}"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !current_goal
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command in ["!goal", "!current_goal", "!pointgoal"]:
         goal_data = database.get_active_goal()
         if not goal_data:
@@ -130,9 +130,9 @@ def process_user_command(username, message_text, is_member=False):
 
         return f"🎯 CURRENT GOAL: {goal_name} | {bar} ({percent}%) | 📊 Progress: {current:,} / {needed:,} points redeemed!"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !redeem
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command == "!redeem":
         if len(parts) < 2:
             return "🤖 Usage: !redeem [item] (amount)"
@@ -193,9 +193,9 @@ def process_user_command(username, message_text, is_member=False):
             except ValueError:
                 return "❌ Error: Specify a valid whole number of points to redeem."
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !pit
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!pit":
         current_time = time.time()
@@ -298,22 +298,31 @@ def process_user_command(username, message_text, is_member=False):
         except ValueError:
             return "❌ Error: Specify an Integer, 'half', or 'all' to throw into the pit."
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !prestige
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!prestige":
-        res = database.execute_user_prestige(username)
-        
-        if res["status"] == "NOT_FOUND":
-            return f"[ERROR] {username} USERNAME NOT FOUND."
+        if len(parts) < 2:
+            res = database.execute_user_prestige(username)
             
-        elif res["status"] == "MAX_CAP":
-            return f"[ERROR] {username} IS AT THE MAXIMUM LEVEL."
-            
-        elif res["status"] == "LOW_POINTS":
-            return f"[ERROR] {username} NOT ENOUGH POINTS"
-            
-        return f"⬆️ {username} PRESTIGE LEVEL INCREASED TO {res['new_level']}! NEW MULTIPLIER: {res['multiplier']}x"
+            if res["status"] == "NOT_FOUND":
+                return f"[ERROR] {username} USERNAME NOT FOUND."
+                
+            elif res["status"] == "MAX_CAP":
+                return f"[ERROR] {username} IS AT THE MAXIMUM LEVEL."
+                
+            elif res["status"] == "LOW_POINTS":
+                return f"[ERROR] {username} NOT ENOUGH POINTS"
+                
+            return f"⬆️ {username} PRESTIGE LEVEL INCREASED TO {res['new_level']}! NEW MULTIPLIER: {res['multiplier']}x"
 
+        elif len(parts) == 2:
+            user_query = parts[1]
+            user_prestige = database.get_prestige_level(user_query)
+            user_multiplier = database.get_user_prestige_multiplier(user_query)
+            return f"User {user_query} is Prestige Level {user_prestige} ({user_multiplier}x Multi)"
+            
+
+            
     return None

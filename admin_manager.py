@@ -38,9 +38,9 @@ def process_admin_command(sender_id, sender_name, message_text):
     if not is_authorized:
         return None
 
-    # ===========================================================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 1: !gamba_open [option1,option2] [Question text...] [Cap amount]
-    # ===========================================================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     if command == "!gamba_open":
         global ACTIVE_GAMBA_CAP, VALID_OPTIONS, IS_BETTING_OPEN, IS_BETTING_LOCKED
@@ -73,9 +73,9 @@ def process_admin_command(sender_id, sender_name, message_text):
         else:
             return f"🎰 BETTING OPENED! 🎰 | ❓:{description_raw} | 📋Choices: {VALID_OPTIONS} | 👉Bets are capped at {active_cap:,} points!"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 2: !gamba_lock
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!gamba_lock":
         if not IS_BETTING_OPEN:
@@ -89,9 +89,9 @@ def process_admin_command(sender_id, sender_name, message_text):
 
         return "🔒 TIME IS UP! Betting is now officially LOCKED. No more entries will be accepted! 🔒"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 3: !gamba_win [winning_option]
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!gamba_win":
         if not IS_BETTING_OPEN:
@@ -115,9 +115,9 @@ def process_admin_command(sender_id, sender_name, message_text):
         
         return f"🏆 BET RESOLVED! The winning choice was '{winning_choice}'. Paid out 2x to {winners_paid} winners! 💰"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 4: !gamba_cancel
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!gamba_cancel":
         if not IS_BETTING_OPEN:
@@ -132,9 +132,9 @@ def process_admin_command(sender_id, sender_name, message_text):
         
         return f"🔄 BET CANCELLED: All points have been safely returned to players."
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 5: !give [username] [amount]
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!give":
         if len(parts) < 3:
@@ -149,9 +149,9 @@ def process_admin_command(sender_id, sender_name, message_text):
         except ValueError:
             return "❌ Error: Amount must be a whole number."
 
-    # ============================================
-    # COMMAND 5b: !give_all [amount]  <- RESTORED!
-    # ============================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    # COMMAND 5b: !give_all [amount]
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!give_all":
         if len(parts) < 2:
@@ -172,9 +172,9 @@ def process_admin_command(sender_id, sender_name, message_text):
         except Exception as e:
             return f"❌ Database error: {str(e)}"
 
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 6: !reset_user [username]
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!reset_user":
         if len(parts) < 2:
@@ -192,19 +192,19 @@ def process_admin_command(sender_id, sender_name, message_text):
         except Exception as e:
             return f"❌ Reset error: {str(e)}"
     
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 7: !quit
-    # ==========================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command in ["!quit", "!exit", "!shutdown"]:
-        if sender_name == "ConsoleAdmin":
+        if sender_name in ["ConsoleAdmin", "magickmskh", "barelyalec"]:
             import main
             main.IS_BOT_RUNNING = False
             return "🛑 SHUTTING DOWN: Closing local tasks and closing Chrome window context..."
 
-    # ==========================================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 8: !gamba_goal [points_needed] [Goal Description]
-    # ==========================================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
     elif command == "!gamba_goal":
         if len(parts) < 3:

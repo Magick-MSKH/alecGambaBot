@@ -2,10 +2,9 @@ import time
 import database
 import sheets_sync
 
-# Init constants
 POINTS_PER_CHAT = 10
 POINTS_PASSIVE = 50
-POINTS_SUPER_CHAT_MULTIPLIER = 250 # Example: ($5 Super Chat) * 250 = 1250 points
+POINTS_SUPER_CHAT_MULTIPLIER = 250
 POINTS_MEMBER_GIFT = 1500
 
 active_viewers = {}
@@ -23,15 +22,12 @@ def process_incoming_message(username, message_text, message_type, details=None,
         last_chat = chat_cooldowns.get(username, 0)
         
         if current_time - last_chat > 30:
-            
-            reward = POINTS_PER_CHAT
+            prestige_mult = database.get_user_prestige_multiplier(username)
+            reward = POINTS_PER_CHAT * prestige_mult
             if is_member:
                 reward = int(POINTS_PER_CHAT * 2)
             else:
                 reward = POINTS_PER_CHAT
-
-            prestige_mult = database.get_user_prestige_multiplier(username)
-            reward *= prestige_mult
 
             database.add_points(username, reward)
             chat_cooldowns[username] = current_time
@@ -47,6 +43,8 @@ def process_incoming_message(username, message_text, message_type, details=None,
         else:
             points_to_add = 1000
 
+        prestige_mult = database.get_user_prestige_multiplier(username)
+        points_to_add *= prestige_mult
         database.add_points(username, points_to_add)
         print(f"🌟 [SUPER CHAT DETECTED] {username} donated ${donation_amount} and got {points_to_add} points!")
         sheets_sync.sync_to_google_sheets()
@@ -79,7 +77,8 @@ def DistributePassivePoints():
             del active_viewers[username]
 
     for username in still_active:
-        reward = POINTS_PASSIVE
+        prestige_mult = database.get_user_prestige_multiplier(username)
+        reward = POINTS_PASSIVE * prestige_mult
         database.add_points(username, reward)
 
     if still_active:

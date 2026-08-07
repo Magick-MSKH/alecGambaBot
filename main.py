@@ -19,9 +19,9 @@ async def run_bot_async():
 
     database.init_db()
 
-    ##########################
-    ### Clear Daily Claims ###
-    ##########################
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    # Clear Daily Claims
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     clear_db = input("💽 Clear Daily Claims? (Y/N): ")
     if not clear_db:
         print("❌ Error: Input cannot be empty.")
@@ -30,9 +30,9 @@ async def run_bot_async():
     else:
         print("📋 Daily Claim flags unchanged")
 
-    #####################
-    ### Stream Select ###
-    #####################
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    # Stream Select
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     print("🖥️ STREAM PROFILE INIT 🖥️")
     stream_choice = input("Select Stream Profile: ").strip().upper()
     if stream_choice == "A":

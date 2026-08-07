@@ -37,9 +37,9 @@ class YouTubeChatSender:
         print("🔒 ACTION REQUIRED: If you aren't logged in, log into your YouTube Streaming account in the browser window that just popped up!")
         print("Once you are on your stream chat page, leave the browser open in the background.")
 
-        # =========================================
-        # NEW: Ignores previous message on startup
-        # =========================================
+        # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        # Ignores previous message on startup
+        # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
         print("⏳ Waiting for initial chat history to populate...")
         await asyncio.sleep(3)

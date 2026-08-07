@@ -20,7 +20,6 @@ def init_db():
         )
     ''')
 
-    # If the table already existed, ensure the new columns get injected safely
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN bets_placed INTEGER DEFAULT 0")
         cursor.execute("ALTER TABLE users ADD COLUMN bets_won INTEGER DEFAULT 0")
@@ -28,9 +27,8 @@ def init_db():
         cursor.execute("ALTER TABLE users ADD COLUMN highest_peak INTEGER DEFAULT 1000")
 
     except sqlite3.OperationalError:
-        pass # Columns already exist, skip safety injection
+        pass
     
-    # Create BETS table
     cursor.execute('''
             CREATE TABLE IF NOT EXISTS bets (
                 username TEXT PRIMARY KEY,
@@ -40,14 +38,12 @@ def init_db():
             )
         ''')
 
-    # Create CLAIMS table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS daily_claims (
             username TEXT PRIMARY KEY
         )
     ''')
     
-    # Create GOALS table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS global_goals (
             goal_name TEXT PRIMARY KEY,
@@ -56,7 +52,6 @@ def init_db():
         )
     ''')
 
-    # Init default goal if table is completely fresh
     cursor.execute("SELECT COUNT(*) FROM global_goals")
     if cursor.fetchone()[0] == 0:
         cursor.execute(
@@ -64,7 +59,6 @@ def init_db():
             ("no ref WHERE GOAL global_goal FROM VALUE", 9999999, 0)
         )
 
-    # Create PIT table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS money_pit (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -72,10 +66,8 @@ def init_db():
         )
     ''')
     
-    # Init default pit with 0 points if none exists
     cursor.execute("INSERT OR IGNORE INTO money_pit (id, jackpot_total) VALUES (1, 0)")
 
-    # Tracks master state of gamba config
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS gamba_session_state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -86,7 +78,6 @@ def init_db():
         )
     ''')
 
-    # Tracks individual live wagers locked in pool
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS gamba_active_bets (
             username TEXT PRIMARY KEY,
@@ -95,7 +86,6 @@ def init_db():
         )
     ''')
     
-    # Guarantee that default row 1 exists for the state checker tracker
     cursor.execute("SELECT COUNT(*) FROM gamba_session_state")
     if cursor.fetchone() == 0:
         cursor.execute("INSERT INTO gamba_session_state (id) VALUES (1)")
@@ -165,28 +155,21 @@ def resolve_bets(winning_type):
     cursor = conn.cursor()
     
     try:
-        # 1. Update Losers first (everyone whose vote_type DOES NOT match)
         cursor.execute(
             "UPDATE users SET bets_lost = bets_lost + 1 WHERE username IN (SELECT username FROM bets WHERE vote_type != ?)", 
             (winning_type,)
         )
         
-        # 2. Get and Process Winners
         cursor.execute("SELECT username, amount FROM bets WHERE vote_type = ?", (winning_type,))
         winners = cursor.fetchall()
         
-        # 3. Pay back double the bet amount to winners and update win counts
         for username, amount in winners:
             payout = amount * 2
             cursor.execute("UPDATE users SET points = points + ?, bets_won = bets_won + 1 WHERE username = ?", (payout, username))
-            
-            # instead of calling a separate function that opens a new connection!
             cursor.execute("UPDATE users SET highest_peak = points WHERE username = ? AND points > highest_peak", (username,))
             
-        # 4. Clear the active bets pool table clean
         cursor.execute("DELETE FROM bets")
         
-        # Commit ALL updates together in one single transaction block
         conn.commit()
         return len(winners)
         
@@ -200,7 +183,6 @@ def resolve_bets(winning_type):
 
 
 def add_points(username, amount):
-    # Calling get_balance ensures they exist in the DB (Database) first
     get_balance(username)
 
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
@@ -209,7 +191,6 @@ def add_points(username, amount):
     conn.commit()
     conn.close()
 
-    # Check if the free/admin points created a new historical peak record
     update_peak_balance(username)
 
 def add_points_to_multiple(usernames, amount):
@@ -218,7 +199,6 @@ def add_points_to_multiple(usernames, amount):
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
-    # Safely format (?, ?, ?) for SQL mass update
     format_strings = ','.join('?' for _ in usernames)
     cursor.execute(f"UPDATE users SET points = points + ? WHERE username IN ({format_strings})", [amount] + list(usernames))
     conn.commit()
@@ -229,18 +209,15 @@ def cancel_and_refund_bets():
     cursor = conn.cursor()
 
     try:
-        # 1. Fetch everyone currently locked into a bet
         cursor.execute("SELECT username, amount FROM bets")
         active_bets = cursor.fetchall()
 
         if not active_bets:
             return 0, "❗ No active bets to refund!"
         
-        # 2. Return points back to each user
         for username, amount in active_bets:
             cursor.execute("UPDATE users SET points = points + ? WHERE username = ?", (amount, username))
 
-        # 3. Wipe the BETS table clean
         cursor.execute("DELETE FROM bets")
 
         conn.commit()
@@ -266,7 +243,6 @@ def add_points_to_all_registered(amount):
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
     cursor = conn.cursor()
 
-    # Update every single row in the users table simultaneously
     cursor.execute("UPDATE users SET points = points + ?", (amount,))
 
     conn.commit()

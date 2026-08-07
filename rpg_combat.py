@@ -21,9 +21,9 @@ def calculate_derived_stats(class_name, base_stats):
     magic_attack = i                 # Default baseline magic damage
     extra_attack_chance = 0.0        # Default baseline double strike probability
 
-    # ===================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # CLASS BONUS SCALING MATRIX MATRICES
-    # ===================================
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     if c_type == "warrior":
         # +1 Attack Power per 6 STR | +1 Defense per 5 DEX | +1 Max HP per 4 VIT
         attack_power += (s // 6)
@@ -66,7 +66,6 @@ def fetch_current_world_parameters():
         return "Act I", "Group 1"
 
 def fetch_filtered_area_enemies():
-    # Grab administrative cell parameters
     active_act, active_group = fetch_current_world_parameters()
     
     act_1_matrix = {

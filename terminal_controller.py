@@ -8,10 +8,9 @@ SENDER_OBJECT = None
 
 async def check_terminal_input():
     global SENDER_OBJECT
-    
-    print("⌨️  Terminal Controller Active: You can type admin commands here anytime!")
-    print("👉 Available: !give [user] [amt] | !give_all [amt] | !gamba_open [opt1,opt2] [Q] | !gamba_lock | !gamba_win [opt] | !gamba_cancel")
-    print("-" * 75)
+    print("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+    print("⌨️Terminal Controller Active⌨️")
+    print("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
 
     input_buffer = ""
 
