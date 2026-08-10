@@ -8,6 +8,7 @@ PIT_COOLDOWN_TRACKER = {}
 PIT_CURSE_STATUS = False
 
 def process_user_command(username, message_text, is_member=False):
+    global PIT_CURSE_STATUS
     parts = message_text.strip().split()
     if not parts:
         return None
@@ -23,7 +24,7 @@ def process_user_command(username, message_text, is_member=False):
                 balance = database.get_balance(username)
                 return f"💰 {username} , you currently have {balance} points!"
             else:
-                target_user = parts[1]
+                target_user = parts[1].lower()
                 balance = database.get_balance(target_user)
                 return f"💰 {target_user} currently has {balance} points!"
         except Exception as e:
@@ -196,7 +197,6 @@ def process_user_command(username, message_text, is_member=False):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !pit
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
     elif command == "!pit":
         current_time = time.time()
         if len(parts) < 2:
@@ -318,11 +318,11 @@ def process_user_command(username, message_text, is_member=False):
             return f"⬆️ {username} PRESTIGE LEVEL INCREASED TO {res['new_level']}! NEW MULTIPLIER: {res['multiplier']}x"
 
         elif len(parts) == 2:
-            user_query = parts[1]
+            user_query = parts[1].lower()
             user_prestige = database.get_prestige_level(user_query)
             user_multiplier = database.get_user_prestige_multiplier(user_query)
             return f"User {user_query} is Prestige Level {user_prestige} ({user_multiplier}x Multi)"
             
 
-            
+
     return None

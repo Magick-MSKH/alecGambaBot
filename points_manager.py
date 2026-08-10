@@ -22,18 +22,22 @@ def process_incoming_message(username, message_text, message_type, details=None,
         last_chat = chat_cooldowns.get(username, 0)
         
         if current_time - last_chat > 30:
-            prestige_mult = database.get_user_prestige_multiplier(username)
-            reward = POINTS_PER_CHAT * prestige_mult
             if is_member:
-                reward = int(POINTS_PER_CHAT * 2)
+                reward = (POINTS_PER_CHAT * 2)
             else:
                 reward = POINTS_PER_CHAT
+
+            prestige_level = database.get_prestige_level(username)
+            prestige_mult = database.get_user_prestige_multiplier(username)
+#           print(f"🐞 {username} has a prestige level of {prestige_level} with a {prestige_mult}x Multiplier")
+            reward *= prestige_mult
+#           print(f"🐞 {username} chat reward of {reward}")
 
             database.add_points(username, reward)
             chat_cooldowns[username] = current_time
 
             member_tag = "👑 [MEMBER]" if is_member else "👤"
-            print(f"{member_tag} {username} earned {POINTS_PER_CHAT} points for chatting")
+#           print(f"🐞{member_tag} {username} earned {POINTS_PER_CHAT} points for chatting")
 
     if message_type == "superChatEvent":
         is_usd = details.get("is_usd", True)
