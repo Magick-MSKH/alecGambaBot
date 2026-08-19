@@ -72,9 +72,7 @@ async def run_bot_async():
 
     terminal_controller.SENDER_OBJECT = sender
     asyncio.create_task(terminal_controller.check_terminal_input())
-
-    print("🚀 Gamba Bot is running natively on Windows! Monitoring chat logs...")
-    await sender.send_message("🤖 Gamba Bot is online and listening for commands!")
+    await sender.send_message("🤖 MagickBot is online, running version 1.5")
 
     last_passive_tick = time.time()
     global IS_BOT_RUNNING

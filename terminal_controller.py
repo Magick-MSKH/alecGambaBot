@@ -9,7 +9,7 @@ SENDER_OBJECT = None
 async def check_terminal_input():
     global SENDER_OBJECT
     print("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
-    print("⌨️ Terminal Controller Active ⌨️")
+    print("⌨️  Terminal Controller Active ⌨️")
     print("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
 
     input_buffer = ""
