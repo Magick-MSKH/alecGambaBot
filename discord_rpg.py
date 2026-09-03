@@ -307,7 +307,7 @@ async def town(interaction: discord.Interaction):
             "Welcome to the Rogue Encampment. Here you can exchange channel points for Gold, "
             "heal wounds at the Inn, and prepare yourself for battles to come.\n\n"
             "**Available Services:**\n"
-            "💤 **Deckard's Inn**: Full HP Recovery for a flat fee of **2 Gold**.\n"
+            "💤 **Akara's Inn**: Full HP Recovery for a flat fee of **2 Gold**.\n"
             "⚒️ **Charsi's Forge**: Purchase or Upgrade Weapons and Armor.\n"
             "🔮 **Magick's Manor**: Learn Spells and Abilities.\n"
         ),

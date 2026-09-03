@@ -6,9 +6,11 @@ import admin_manager
 
 PIT_COOLDOWN_TRACKER = {}
 PIT_CURSE_STATUS = False
+PIT_COST_MODIFIER = 0
 
 def process_user_command(username, message_text, is_member=False):
     global PIT_CURSE_STATUS
+    global PIT_COST_MODIFIER
     parts = message_text.strip().split()
     if not parts:
         return None
@@ -88,7 +90,7 @@ def process_user_command(username, message_text, is_member=False):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !daily
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-    elif command in ["!daily", "!bonus"]:
+    elif command in ["!daily", "!bonus", "!flarg"]:
         try:
             if database.check_daily_claimed(username):
                 return f"⚠️ {username} , you have already claimed your bonus points for this stream."
@@ -244,6 +246,7 @@ def process_user_command(username, message_text, is_member=False):
                 amount = int(amount_str)
 
             pit_cost = database.get_user_prestige_multiplier(username) * 100
+            pit_cost += PIT_COST_MODIFIER
 
             if amount < pit_cost:
                 return f"❌ A Minimum of {pit_cost} points must be thrown into the pit."
@@ -263,19 +266,27 @@ def process_user_command(username, message_text, is_member=False):
                 roll = random.randint(111, 999)
             else:
                 roll = random.randint(1, 999)
+
+            if roll == amount:
+                database.add_points(username, 10000)
+                sender.send_message(f"🎰 {username} 's amount and roll matched! Bonus 10k points!")
             
             match roll:
                 case 1:
                     PIT_CURSE_STATUS = True
                     return f"👻 Blooky has cursed the pit! 💀 It cannot be used again unless cleansed!"
-#               case 111:
-                    # Do something
+                case 111:
+                    PIT_COST_MODIFIER += 100
+                    return f"🕳️ Pit Cost temporarily increased by 100 for the rest of the stream!"
 #               case 222:
                     # Do something
                 case 333:
                     database.add_to_pit(fresh_jackpot)
                     fresh_jackpot = database.get_pit_total()
                     return f"🪽 Masekah descends to bless the pit.🪽 The pool is doubled to {fresh_jackpot:,} points!"
+#               case 420:
+                    # Do something
+                    # Bunny suggestion
                 case 444:
                     return rpg_database.deposit_to_gheed(username, 44000)
 #               case 555:

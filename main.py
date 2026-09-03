@@ -14,6 +14,7 @@ from pytchat import CompatibleProcessor
 from chat_sender import YouTubeChatSender
 
 IS_BOT_RUNNING = True
+PIT_COST_MODIFIER = 0
 
 async def run_bot_async():
 
@@ -72,7 +73,7 @@ async def run_bot_async():
 
     terminal_controller.SENDER_OBJECT = sender
     asyncio.create_task(terminal_controller.check_terminal_input())
-    await sender.send_message("🤖 MagickBot is online, running version 1.5")
+    await sender.send_message("🤖 MagickBot is online, running version 1.6")
 
     last_passive_tick = time.time()
     global IS_BOT_RUNNING
