@@ -1,5 +1,4 @@
 import sqlite3
-from chat_sender import YouTubeChatSender
 
 DB_NAME = "gamba_bot.db"
 
@@ -144,7 +143,6 @@ def place_bet(username, amount, vote_type):
             print(f"⚠️ Crash recorder sync notice (Non-fatal): {e}")
 
         conn.close()
-        sender.send_message(f"[💎] Bet placed! {amount} points on '{vote_type}'.")
         return True, f"[💎] Bet placed! {amount} points on '{vote_type}'."
     
     except Exception as e:

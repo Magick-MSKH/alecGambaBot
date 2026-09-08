@@ -184,6 +184,9 @@ async def run_bot_async():
                                         await sender.send_message(f"🐦‍🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🐦‍🔥")
                                 elif amount_str == "half" and success:
                                     await sender.send_message(f"🔥 {username} just wagered HALF of their points ({amount:,}) on '{vote}'! 🔥")
+                            else:
+                                await sender.send_message(f"💎 Bet confirmed: {amount:,} points on '{vote}' {username}.")
+
                         except Exception as e:
                             print(f"❌ [GAMBA LOOP ERROR]: {e}")
 
