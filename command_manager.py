@@ -26,7 +26,7 @@ def process_user_command(username, message_text, is_member=False):
                 balance = database.get_balance(username)
                 return f"💰 {username} , you currently have {balance} points!"
             else:
-                target_user = parts[1].lower()
+                target_user = parts[1]
                 balance = database.get_balance(target_user)
                 return f"💰 {target_user} currently has {balance} points!"
         except Exception as e:
