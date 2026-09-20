@@ -88,12 +88,42 @@ def process_user_command(username, message_text, is_member=False):
         return "🤖 For a full list of commands, check the Discord channel or Github page"
 
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    # COMMAND: !flarg
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    elif command == "!flarg":
+        try:
+            if "FledgeLum" in username:
+                if database.check_daily_claimed(username):
+                    return f"⚠️ {username} , you have already claimed your bonus points for this stream."
+
+                current_streak = database.get_user_daily_streak(username)
+                prestige_mult = database.get_user_prestige_multiplier(username)
+
+                BASE_REWARD = 1000 if is_member else 500
+                streak_bonus = current_streak * 500
+                FINAL_PAYOUT = (BASE_REWARD + streak_bonus) * prestige_mult
+
+                database.add_points(username, FINAL_PAYOUT)
+                database.record_daily_claim(username)
+                database.increment_user_daily_streak(username)
+
+                if is_member:
+                    return f"🎁 {username} claimed their member bonus {FINAL_PAYOUT:,} points."
+                else:
+                    return f"🎁 {username} claimed their bonus {FINAL_PAYOUT:,} points."
+            else:
+                return f"⚠️ {username} only @FledgeLum can use this command!"
+
+        except Exception as e:
+            return f"❌ Error claiming !daily: {str(e)}"
+
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !daily
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-    elif command in ["!daily", "!bonus", "!flarg"]:
+    elif command == "!daily":
         try:
             if database.check_daily_claimed(username):
-                return f"⚠️ {username} , you have already claimed your bonus points for this stream."
+                return f"⚠️ {username} you have already claimed your bonus points for this stream."
 
             current_streak = database.get_user_daily_streak(username)
             prestige_mult = database.get_user_prestige_multiplier(username)
@@ -105,7 +135,6 @@ def process_user_command(username, message_text, is_member=False):
             database.add_points(username, FINAL_PAYOUT)
             database.record_daily_claim(username)
             database.increment_user_daily_streak(username)
-#           new_balance = database.get_balance(username)
 
             if is_member:
                 return f"🎁 {username} claimed their member bonus {FINAL_PAYOUT:,} points."
