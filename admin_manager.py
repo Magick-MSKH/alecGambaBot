@@ -228,10 +228,7 @@ def get_current_pool_info():
     if not IS_BETTING_OPEN:
         return "🎲 No active betting pool is open right now."
 
-    if IS_BETTING_LOCKED:
-        return (f"🎰 ACTIVE POOL 🔒LOCKED!: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)}")
-    else:
-        return (f"🎰 ACTIVE POOL 🟢OPEN!: {CURRENT_QUESTION} | 📋 CHOICES: {', '.join(VALID_OPTIONS)} | 👉 Bets capped at {ACTIVE_GAMBA_CAP}")
+    return (f"🎰 ACTIVE POOL {'🔒LOCKED!' if IS_BETTING_LOCKED else '🟢OPEN!'} ❓:{description_raw}| 📋 CHOICES: {', '.join(VALID_OPTIONS)}" | {'👉 Bets capped at {ACTIVE_GAMBA_CAP}' if ACTIVE_GAMBA_CAP is not None else ''})
 
 def check_and_execute_boot_recovery():
     global IS_BETTING_OPEN, IS_BETTING_LOCKED, VALID_OPTIONS
