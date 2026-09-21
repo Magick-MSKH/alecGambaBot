@@ -73,7 +73,7 @@ async def run_bot_async():
 
     terminal_controller.SENDER_OBJECT = sender
     asyncio.create_task(terminal_controller.check_terminal_input())
-    await sender.send_message("🤖 MagickBot is online, running version 1.6")
+    await sender.send_message("🤖 MagickBot is online, running version 1.7")
 
     last_passive_tick = time.time()
     global IS_BOT_RUNNING
@@ -142,57 +142,9 @@ async def run_bot_async():
                     sheets_sync.sync_to_google_sheets()
                     continue
 
-                if message_text.startswith("!gamba"):
-                    if not admin_manager.IS_BETTING_OPEN or admin_manager.IS_BETTING_LOCKED:
-                        continue
-                    parts = message_text.split()
-                    if len(parts) >= 3:
-                        try:
-                            is_currently_capped = False
-                            amount_str = parts[1].lower()
-                            vote = parts[2].lower()
-                            if vote not in admin_manager.VALID_OPTIONS:
-                                continue
-                            if amount_str in ["all", "allin", "all-in"]:
-                                amount = database.get_balance(username)
-                            elif amount_str == "half":
-                                current_wealth = database.get_balance(username)
-                                amount = int(current_wealth / 2)
-                            else:
-                                amount = int(amount_str)
-                            
-                            if amount <= 0:
-                                continue
-
-                            if admin_manager.ACTIVE_GAMBA_CAP is not None:
-                                if amount > admin_manager.ACTIVE_GAMBA_CAP:
-                                    amount = admin_manager.ACTIVE_GAMBA_CAP
-                                    is_currently_capped = True
-
-                            success, gamba_msg = database.place_bet(username, amount, vote)
-                            if not gamba_msg:
-                                gamba_msg = "Bet rejected."
-                            print(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
-
-                            if success:
-                                if is_currently_capped:
-                                    await sender.send_message(f"🔒 {username}'s bet exceeded the limit and was capped at {amount:,} points on '{vote}'.")
-                                elif amount_str in ["all", "allin", "all-in"] and success:
-                                    if amount < 1000:
-                                        await sender.send_message(f"💤 {username} is going all-in with a measly {amount:,} points on '{vote}'")
-                                    else:
-                                        await sender.send_message(f"🐦‍🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🐦‍🔥")
-                                elif amount_str == "half" and success:
-                                    await sender.send_message(f"🔥 {username} just wagered HALF of their points ({amount:,}) on '{vote}'! 🔥")
-                            else:
-                                await sender.send_message(f"💎 Bet confirmed: {amount:,} points on '{vote}' {username}.")
-
-                        except Exception as e:
-                            print(f"❌ [GAMBA LOOP ERROR]: {e}")
-
             await asyncio.sleep(1)
 
-        except asyncio.CancelledError:
+        except asyncio.CancelledError: 
             IS_BOT_RUNNING = False
             break
         except Exception as e:

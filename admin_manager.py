@@ -3,7 +3,8 @@ import sqlite3
 import database
 import admin_manager
 
-ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCr9EAyXltNes4Km4iqYmLcg", "UCFjzgN21rXjulNVDMalGx8A"] # @magicmskh, @barelyalec, @notalecprobably, @bunnyisdreaming6081, @gracefulgwaelin
+ADMIN_IDS = ["UCHpI9dGQrVLLCMv-raEoJ7w", "UCa1X6pPmo2pFomK9T308BKg", "UCbs1mvFRAd_D7ATvWIFPG0g", "UCr9EAyXltNes4Km4iqYmLcg", "UCFjzgN21rXjulNVDMalGx8A"]
+# @magicmskh, @barelyalec, @notalecprobably, @bunnyisdreaming6081, @gracefulgwaelin
 
 IS_BETTING_OPEN = False
 IS_BETTING_LOCKED = False

@@ -1,8 +1,10 @@
 import time
 import random
 import database
+import chat_sender
 import rpg_database
 import admin_manager
+from pytchat import CompatibleProcessor
 
 PIT_COOLDOWN_TRACKER = {}
 PIT_CURSE_STATUS = False
@@ -31,6 +33,58 @@ def process_user_command(username, message_text, is_member=False):
                 return f"💰 {target_user} currently has {balance} points!"
         except Exception as e:
             return f"❌ ERROR Checking balance: {str(e)}"
+
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    # COMMAND: !gamba
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    elif command == "!gamba":
+        if not admin_manager.IS_BETTING_OPEN or admin_manager.IS_BETTING_LOCKED:
+            return
+        parts = message_text.split()
+        if len(parts) >= 3:
+            try:
+                is_currently_capped = False
+                amount_str = parts[1].lower()
+                vote = parts[2].lower()
+                if vote not in admin_manager.VALID_OPTIONS:
+                    return
+                if amount_str == "all":
+                    amount = database.get_balance(username)
+                elif amount_str == "half":
+                    current_wealth = database.get_balance(username)
+                    amount = int(current_wealth / 2)
+                else:
+                    amount = int(amount_str)
+
+                if amount <= 0:
+                    return
+
+                if admin_manager.ACTIVE_GAMBA_CAP is not None:
+                    if amount > admin_manager.ACTIVE_GAMBA_CAP:
+                        amount = admin_manager.ACTIVE_GAMBA_CAP
+                        is_currently_capped = True
+
+                success, gamba_msg = database.place_bet(username, amount, vote)
+                if not gamba_msg:
+                    gamba_msg = "Bet rejected."
+                print(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
+                chat_sender.send_message(f"🎲 GAMBA REGISTERED: {username} -> {gamba_msg}")
+
+                if success:
+                    if is_currently_capped:
+                        chat_sender.send_message(f"🔒 {username}'s bet exceeded the limit and was capped at {amount:,} points on '{vote}'.")
+                    elif amount_str in ["all", "allin", "all-in"] and success:
+                        if amount < 1000:
+                            chat_sender.send_message(f"💤 {username} is going all-in with a measly {amount:,} points on '{vote}'")
+                        else:
+                            chat_sender.send_message(f"🐦‍🔥 ALL-IN! {username} just risked all {amount:,} points on '{vote}'! 🐦‍🔥")
+                    elif amount_str == "half" and success:
+                        chat_sender.send_message(f"🔥 {username} just wagered HALF of their points ({amount:,}) on '{vote}'! 🔥")
+                else:
+                        chat_sender.send_message(f"💎 Bet confirmed: {amount:,} points on '{vote}' {username}.")
+                
+            except Exception as e:
+                print(f"❌ [GAMBA LOOP ERROR]: {e}")
 
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !leaderboard
@@ -298,7 +352,7 @@ def process_user_command(username, message_text, is_member=False):
 
             if roll == amount:
                 database.add_points(username, 10000)
-                sender.send_message(f"🎰 {username} 's amount and roll matched! Bonus 10k points!")
+                chat_sender.send_message(f"🎰 {username} 's amount and roll matched! Bonus 10k points!")
             
             match roll:
                 case 1:
