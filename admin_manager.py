@@ -60,6 +60,7 @@ def process_admin_command(sender_id, sender_name, message_text):
             description_words = raw_words[2:]
         
         description_raw = " ".join(description_words)
+        CURRENT_QUESTION = description_raw
 
         VALID_OPTIONS = [opt.strip().lower() for opt in options_raw.split(",")]
         IS_BETTING_OPEN = True
@@ -138,7 +139,7 @@ def process_admin_command(sender_id, sender_name, message_text):
             
         target_username = parts[1]
         if database.get_balance(target_username) == None:
-            return f"❌ {target_user} does not exist!"
+            return f"❌ {target_username} does not exist!"
         try:
             amount = int(parts[2])
             database.add_points(target_username, amount)
@@ -230,7 +231,7 @@ def get_current_pool_info():
     if not IS_BETTING_OPEN:
         return "🎲 No active betting pool is open right now."
 
-    return (f"🎰 ACTIVE POOL {'🔒LOCKED!' if IS_BETTING_LOCKED else '🟢OPEN!'} ❓:{description_raw}| 📋 CHOICES: {', '.join(VALID_OPTIONS)}" | {'👉 Bets capped at {ACTIVE_GAMBA_CAP}' if ACTIVE_GAMBA_CAP is not None else ''})
+    return (f"🎰 ACTIVE POOL {'🔒LOCKED!' if IS_BETTING_LOCKED else '🟢OPEN!'} ❓:{CURRENT_QUESTION}| 📋 CHOICES: {', '.join(VALID_OPTIONS)}" | {'👉 Bets capped at {ACTIVE_GAMBA_CAP}' if ACTIVE_GAMBA_CAP is not None else ''})
 
 def check_and_execute_boot_recovery():
     global IS_BETTING_OPEN, IS_BETTING_LOCKED, VALID_OPTIONS
