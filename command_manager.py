@@ -31,7 +31,7 @@ def process_user_command(username, message_text, is_member=False):
             elif len(parts) == 2:
                 target_user = parts[1]
                 balance = database.get_balance(target_user)
-                if balance = None:
+                if balance == None:
                     return f"❌ User {target_user} does not exist!"
                 else:
                     return f"💰 {target_user} currently has {balance} points!"
