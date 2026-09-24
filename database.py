@@ -101,12 +101,7 @@ def get_balance(username):
     row = cursor.fetchone()
 
     if row is None:
-        cursor.execute('''
-            INSERT INTO users (username, points, bets_placed, bets_won, bets_lost, highest_peak)
-            VALUES (?, 1000, 0, 0, 0, 1000)
-        ''', (username,))
-        conn.commit()
-        balance = 1000
+        return None
     else:
         balance = row[0]
 
@@ -185,13 +180,15 @@ def resolve_bets(winning_type):
 def add_points(username, amount):
     get_balance(username)
 
-    conn = sqlite3.connect(DB_NAME, timeout=30.0)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET points = points + ? WHERE username = ?", (amount, username))
-    conn.commit()
-    conn.close()
-
-    update_peak_balance(username)
+    if get_balance(username) is not None:
+        conn = sqlite3.connect(DB_NAME, timeout=30.0)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET points = points + ? WHERE username = ?", (amount, username))
+        conn.commit()
+        conn.close()
+        update_peak_balance(username)
+    else:
+        return None
 
 def add_points_to_multiple(usernames, amount):
     if not usernames:

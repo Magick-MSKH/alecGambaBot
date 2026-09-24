@@ -7,6 +7,7 @@ import admin_manager
 from pytchat import CompatibleProcessor
 
 PIT_COOLDOWN_TRACKER = {}
+HELP_COOLDOWN_TRACKER = 0
 PIT_CURSE_STATUS = False
 PIT_COST_MODIFIER = 0
 
@@ -27,10 +28,13 @@ def process_user_command(username, message_text, is_member=False):
             if len(parts) < 2:
                 balance = database.get_balance(username)
                 return f"💰 {username} , you currently have {balance} points!"
-            else:
+            elif len(parts) == 2:
                 target_user = parts[1]
                 balance = database.get_balance(target_user)
-                return f"💰 {target_user} currently has {balance} points!"
+                if balance = None:
+                    return f"❌ User {target_user} does not exist!"
+                else:
+                    return f"💰 {target_user} currently has {balance} points!"
         except Exception as e:
             return f"❌ ERROR Checking balance: {str(e)}"
 
@@ -139,7 +143,15 @@ def process_user_command(username, message_text, is_member=False):
     # COMMAND: !help
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command == "!help":
-        return "🤖 For a full list of commands, check the Discord channel or Github page"
+        current_time = time.time()
+        if current_time < HELP_COOLDOWN_TRACKER:
+            remaining_seconds = int(HELP_COOLDOWN_TRACKER - current_time)
+            minutes = remaining_seconds // 60
+            seconds = remaining_seconds % 60
+            return f"🤖⏳ {username} , You have a {minutes}m {seconds}s cooldown on this command."
+        else:
+            HELP_COOLDOWN_TRACKER = current_time + 180
+            return "🤖 To Gamba, type !gamba [amount] [choice] | To check your balance, type !balance | For other commands, check the #gamba channel in the BarelyAlec Discord server!"
 
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !flarg
@@ -395,7 +407,6 @@ def process_user_command(username, message_text, is_member=False):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND: !prestige
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
     elif command == "!prestige":
         if len(parts) < 2:
             res = database.execute_user_prestige(username)
@@ -416,7 +427,32 @@ def process_user_command(username, message_text, is_member=False):
             user_prestige = database.get_prestige_level(user_query)
             user_multiplier = database.get_user_prestige_multiplier(user_query)
             return f"User {user_query} is Prestige Level {user_prestige} ({user_multiplier}x Multi)"
-            
 
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    # COMMAND: !transfer
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    elif command == "!transfer":
+
+        xfer_amount = parts[1]
+        target_user = parts[2]
+        balance = database.get_balance(username)
+
+        if len(parts) < 3:
+            return f"❌ {username} Usage: !transfer [amount] [username]"
+        if target_user == username:
+            return f"❌ {username} You cannot transfer to yourself!"
+        if balance < xfer_amount:
+            return f"❌ {username} Insufficient balance! (you have {balance} points)"
+        if xfer_amount <= 0:
+            return f"❌ {username} Transfer amount must be a positive integer!"
+        if database.get_balance(target_user) == None:
+            return f"❌ {target_user} does not exist!"
+
+        try:
+            database.add_points(username, -xfer_amount)
+            database.add_points(target_user, xfer_amount)
+            return f"💸 {username} transferred {xfer_amount} points to {target_user}"
+        except ValueError:
+            return "❌ Error! Transfer amount must be an Integer!"
 
     return None

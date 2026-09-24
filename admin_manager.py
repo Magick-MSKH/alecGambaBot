@@ -42,7 +42,6 @@ def process_admin_command(sender_id, sender_name, message_text):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 1: !gamba_open [option1,option2] [Question text...] [Cap amount]
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
     if command == "!gamba_open":
         global ACTIVE_GAMBA_CAP, VALID_OPTIONS, IS_BETTING_OPEN, IS_BETTING_LOCKED
 
@@ -77,7 +76,6 @@ def process_admin_command(sender_id, sender_name, message_text):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 2: !gamba_lock
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
     elif command == "!gamba_lock":
         if not IS_BETTING_OPEN:
             return "⚠️ There is no active betting pool open to lock."
@@ -93,7 +91,6 @@ def process_admin_command(sender_id, sender_name, message_text):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 3: !gamba_win [winning_option]
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
     elif command == "!gamba_win":
         if not IS_BETTING_OPEN:
             return "⚠️ There is no active betting pool to resolve right now."
@@ -119,7 +116,6 @@ def process_admin_command(sender_id, sender_name, message_text):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 4: !gamba_cancel
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
     elif command == "!gamba_cancel":
         if not IS_BETTING_OPEN:
             return "⚠️ There is no active betting pool to cancel."
@@ -136,12 +132,13 @@ def process_admin_command(sender_id, sender_name, message_text):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 5: !give [username] [amount]
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
     elif command == "!give":
         if len(parts) < 3:
             return "⚠️ Usage: !give [username] [amount]"
             
         target_username = parts[1]
+        if database.get_balance(target_username) == None:
+            return f"❌ {target_user} does not exist!"
         try:
             amount = int(parts[2])
             database.add_points(target_username, amount)
@@ -153,7 +150,6 @@ def process_admin_command(sender_id, sender_name, message_text):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 5b: !give_all [amount]
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
     elif command == "!give_all":
         if len(parts) < 2:
             return "⚠️ Usage: !give_all [amount]"
@@ -172,6 +168,12 @@ def process_admin_command(sender_id, sender_name, message_text):
             return "❌ Error: Amount must be an integer."
         except Exception as e:
             return f"❌ Database error: {str(e)}"
+
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    # COMMAND 5c: !give_active [amount]
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
 
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     # COMMAND 6: !reset_user [username]
