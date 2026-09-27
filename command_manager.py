@@ -434,9 +434,9 @@ def process_user_command(username, message_text, is_member=False):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command == "!transfer":
 
-        xfer_amount = parts[1]
+        xfer_amount = int(parts[1])
         target_user = parts[2]
-        balance = database.get_balance(username)
+        balance = int(database.get_balance(username))
 
         if len(parts) < 3:
             return f"❌ {username} Usage: !transfer [amount] [username]"
@@ -444,10 +444,6 @@ def process_user_command(username, message_text, is_member=False):
             return f"❌ {username} You cannot transfer to yourself!"
         if balance < xfer_amount:
             return f"❌ {username} Insufficient balance! (you have {balance} points)"
-        if int(xfer_amount) <= 0:
-            return f"❌ {username} Transfer amount must be a positive integer!"
-        if database.get_balance(target_user) == None:
-            return f"❌ {target_user} does not exist!"
 
         try:
             database.add_points(username, -xfer_amount)
