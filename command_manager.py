@@ -143,6 +143,7 @@ def process_user_command(username, message_text, is_member=False):
     # COMMAND: !help
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     elif command == "!help":
+        global HELP_COOLDOWN_TRACKER
         current_time = time.time()
         if current_time < HELP_COOLDOWN_TRACKER:
             remaining_seconds = int(HELP_COOLDOWN_TRACKER - current_time)
@@ -443,7 +444,7 @@ def process_user_command(username, message_text, is_member=False):
             return f"❌ {username} You cannot transfer to yourself!"
         if balance < xfer_amount:
             return f"❌ {username} Insufficient balance! (you have {balance} points)"
-        if xfer_amount <= 0:
+        if int(xfer_amount) <= 0:
             return f"❌ {username} Transfer amount must be a positive integer!"
         if database.get_balance(target_user) == None:
             return f"❌ {target_user} does not exist!"
